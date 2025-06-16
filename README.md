@@ -1,29 +1,22 @@
-# my-app
+IDE: webstorm(https://www.bilibili.com/opus/977414752783302681?from=search&spm_id_from=333.337.0.0)
+     Vscode
 
-This template should help get you started developing with Vue 3 in Vite.
+1.下载安装包‌：访问[Node.js官网](https:nodejs.org)，选择带“LTS”（长期支持）标识的版本下载。‌
 
-## Recommended IDE Setup
-
-[VSCode](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
-
-## Customize configuration
-
-See [Vite Configuration Reference](https://vite.dev/config/).
-
-## Project Setup
+2.安装electron,vite
 
 ```sh
-npm install
+npm install electron vite vite-plugin-electron --save-dev
+npm install @electron/rebuild --save-dev
 ```
 
-### Compile and Hot-Reload for Development
+3.运行
 
+启动第一个客户端并运行
 ```sh
 npm run dev
 ```
-
-### Compile and Minify for Production
-
+启动第二个客户端并运行
 ```sh
 npm run build
 ```
