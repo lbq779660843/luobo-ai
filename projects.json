@@ -1,0 +1,37 @@
+{
+  "total": 4,
+  "items": [
+    {
+      "id": "P000000",
+      "name": "test0",
+      "type": "图像分类",
+      "description": "test0",
+      "createdAt": "2025-05-08 07:03:07",
+      "createdBy": "未登入"
+    },
+    {
+      "id": "P000001",
+      "name": "test1",
+      "type": "实例分割",
+      "description": "test1",
+      "createdAt": "2025-05-08 09:57:29",
+      "createdBy": "未登入"
+    },
+    {
+      "id": "P000002",
+      "name": "罗博1",
+      "type": "图像分类",
+      "description": "罗博1",
+      "createdAt": "2025-05-29 06:01:43",
+      "createdBy": "未登入"
+    },
+    {
+      "id": "P000003",
+      "name": "test",
+      "type": "实例分割",
+      "description": "20250613",
+      "createdAt": "2025-06-13 03:31:33",
+      "createdBy": "未登入"
+    }
+  ]
+}

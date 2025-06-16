@@ -1,0 +1,442 @@
+<template>
+  <div class="modal" v-if="visible">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>创建信息</h2>
+        <button class="close-btn" @click="close">×</button>
+      </div>
+      <div class="modal-body">
+        <!-- 创建信息 -->
+        <div class="info-group">
+<!--          <h3>创建信息</h3>-->
+          <p><strong>ID:</strong> {{ dataset.id }}</p>
+          <p><strong>类型:</strong> {{ dataset.type }}</p>
+          <p><strong>描述:</strong> {{ dataset.description || '无描述' }}</p>
+        </div>
+
+        <!-- 数据集导入 -->
+        <div class="info-group">
+          <h3>数据集导入</h3>
+          <p>
+            需要提供压缩包或解压后文件中完整路径（包含目录仅一个数据集），不支持 zip、tar.gz 等压缩包和加密数据集，
+            <a href="#" class="link">了解更多</a>
+          </p>
+          <div class="path-selector">
+            <label>存储路径:</label>
+            <input type="text" v-model="storagePath" placeholder="请输入存储路径" @input="logStoragePath" />
+            <button class="btn-browse" @click="openFileExplorer">🔍</button>
+          </div>
+          <!-- 数据集划分（仅对目标检测、实例分割、姿态估计任务显示） -->
+          <div class="split-section" v-if="['目标检测', '实例分割', '姿态估计'].includes(dataset.type)">
+            <h4>数据集划分</h4>
+            <div class="split-status" :class="{ 'success': isImported }">
+              <span :class="{ 'red': !isImported, 'green': isImported }">
+                {{ isImported ? '成功导入' : '未导入' }}
+              </span>
+            </div>
+            <div class="split-inputs">
+              <div class="split-input">
+                <label>训练集比例:</label>
+                <input type="number" v-model.number="splitRatios.train" min="0" max="100" @input="adjustRatios('train')" />%
+                <span v-if="isImported" class="count">训练集数量: {{ trainCount }}</span>
+              </div>
+              <div class="split-input">
+                <label>验证集比例:</label>
+                <input type="number" v-model.number="splitRatios.val" min="0" max="100" @input="adjustRatios('val')" />%
+                <span v-if="isImported" class="count">验证集数量: {{ valCount }}</span>
+              </div>
+              <div class="split-input">
+                <label>测试集比例:</label>
+                <input type="number" v-model.number="splitRatios.test" min="0" max="100" @input="adjustRatios('test')" />%
+                <span v-if="isImported" class="count">测试集数量: {{ testCount }}</span>
+              </div>
+            </div>
+            <p v-if="splitError" class="error">{{ splitError }}</p>
+          </div>
+        </div>
+
+        <!-- 数据集导入规则说明 -->
+        <div class="info-group">
+          <h3>数据集导入规则说明</h3>
+          <p>
+            - 图像分类任务：<br />
+            一级目录为‘存储路径’所在根目录，二级目录为类别目录数量不限，<br />
+            类别目录中包含的必须是以'.jpg'或'.png'或'.bmp'结尾的图像文件<br />
+            <br />
+            - 目标检测任务、实例分割任务、姿态估计任务：<br />
+            一级目录为‘存储路径’所在根目录，二级目录必须只有'labels'和'images'两个目录，<br />
+            其中'labels'目录中必须包含的是以'.txt'结尾的标签文件，'images'必须包含的是以'.jpg'或'.png'或'.bmp'结尾的图像文件。<br />
+          </p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-confirm" @click="confirmImport" :disabled="!storagePath">确定导入</button>
+        <button class="btn-cancel" @click="close">退出</button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref } from 'vue';
+
+const props = defineProps({
+  visible: Boolean,
+  dataset: Object,
+});
+
+const emit = defineEmits(['close', 'import-success']);
+
+const storagePath = ref('');
+const splitRatios = ref({ train: 70, val: 20, test: 10 });
+const splitError = ref('');
+const isImported = ref(false);
+const trainCount = ref(0);
+const valCount = ref(0);
+const testCount = ref(0);
+const imageFiles = ref([]);
+
+function logStoragePath() {
+  console.log('storagePath updated:', storagePath.value);
+}
+
+async function openFileExplorer() {
+  const selectedPath = await window.electronAPI.openFolderDialog();
+  if (selectedPath) {
+    storagePath.value = selectedPath;
+    logStoragePath();
+  }
+}
+
+function close() {
+  emit('close');
+}
+
+function adjustRatios() {
+  const total = splitRatios.value.train + splitRatios.value.val + splitRatios.value.test;
+  splitError.value = total !== 100 ? '训练集、验证集和测试集比例之和必须为 100%' : '';
+  if (!splitError.value) calculateCounts();
+}
+
+function calculateCounts() {
+  const total = imageFiles.value.length;
+  trainCount.value = Math.floor(total * (splitRatios.value.train / 100));
+  valCount.value = Math.floor(total * (splitRatios.value.val / 100));
+  testCount.value = total - trainCount.value - valCount.value;
+}
+
+function generateDatasetId() {
+  const prefix = 'D';
+  const randomDigits = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+  return prefix + randomDigits;
+}
+
+async function confirmImport() {
+  console.log('Confirming with storagePath:', storagePath.value);
+
+  if (splitError.value) {
+    alert('请修正数据集划分比例！');
+    return;
+  }
+
+  // 调用 preload 的 validateDataset
+  const validationResult = await window.electronAPI.validateDataset(storagePath.value, props.dataset.type);
+  if (!validationResult.success) {
+    alert(`数据验证失败：${validationResult.error}`);
+    return;
+  }
+
+  const imageFiles = validationResult.files;
+  const totalCount = imageFiles.length;
+  let trainCount = 0;
+  let valCount = 0;
+  let testCount = 0;
+
+  // 需要划分训练集的类型
+  if (['目标检测', '实例分割', '姿态估计'].includes(props.dataset.type)) {
+    const splitResult = await window.electronAPI.splitDataset(
+        storagePath.value,
+        props.dataset.type,
+        imageFiles,
+        {
+          train: parseFloat(splitRatios.value.train),
+          val: parseFloat(splitRatios.value.val),
+          test: parseFloat(splitRatios.value.val)
+        }
+    );
+
+    if (!splitResult.success) {
+      alert(`数据划分失败：${splitResult.error}`);
+      return;
+    }
+
+    trainCount = splitResult.trainCount;
+    valCount = splitResult.valCount;
+    testCount = splitResult.testCount;
+  }
+
+  // 生成当前时间
+  const now = new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  const formatDate = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+
+  // 构建写入数据集信息对象（保留传入的 props.dataset.id）
+  const datasetInfo = {
+    id: props.dataset.id,                 // 已在 Dataset.vue 中生成
+    name: props.dataset.name,
+    type: props.dataset.type,
+    createdAt: formatDate,
+    createdBy: '未登入',
+    storagePath: storagePath.value,
+    totalCount,
+    trainCount,
+    valCount,
+    testCount
+  };
+
+  // 写入 datasets.json
+  const writeResult = await window.electronAPI.writeDatasetInfo(datasetInfo);
+  if (!writeResult.success) {
+    alert(`写入数据集信息失败：${writeResult.error}`);
+    return;
+  }
+
+  isImported.value = true;
+  emit('import-success', props.dataset); // props.dataset 中应包含 id
+}
+
+</script>
+
+<style scoped>
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  width: 600px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  overflow: auto;
+  max-height: 80vh;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid #ebeef5;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.modal-body {
+  padding: 16px;
+}
+
+.info-group {
+  margin-bottom: 24px;
+}
+
+.info-group h3 {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  color: #303133;
+}
+
+.info-group h4 {
+  margin: 16px 0 8px 0;
+  font-size: 14px;
+  color: #303133;
+}
+
+.info-group p {
+  margin: 8px 0;
+  font-size: 14px;
+  color: #606266;
+  line-height: 1.5;
+}
+
+.info-group .link {
+  color: #409EFF;
+  text-decoration: none;
+}
+
+.info-group .link:hover {
+  text-decoration: underline;
+}
+
+.path-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.path-selector label {
+  font-size: 14px;
+  color: #606266;
+}
+
+.path-selector input {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.split-section {
+  margin-top: 16px;
+}
+
+.split-status {
+  margin-bottom: 8px;
+}
+
+.split-status span {
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.split-status .red {
+  background-color: #ff4d4f;
+  color: white;
+}
+
+.split-status .green {
+  background-color: #52c41a;
+  color: white;
+}
+
+.split-inputs {
+  display: flex;
+  gap: 16px;
+}
+
+.split-input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.split-input label {
+  font-size: 14px;
+  color: #606266;
+}
+
+.split-input input {
+  width: 60px;
+  padding: 4px;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.split-input .count {
+  font-size: 14px;
+  color: #606266;
+  margin-left: 8px;
+}
+
+.error {
+  color: #f56c6c;
+  font-size: 12px;
+  margin-top: 8px;
+}
+
+.preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.preview-item {
+  padding: 8px;
+  background: #f5f7fa;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  font-size: 14px;
+  color: #606266;
+}
+
+.preview-structure {
+  margin-top: 16px;
+  padding: 8px;
+  background: #fafafa;
+  border: 1px dashed #dcdfe6;
+  border-radius: 4px;
+  width: 100%;
+}
+
+.structure-item {
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: #606266;
+}
+
+.structure-subitem {
+  margin-left: 16px;
+  font-size: 13px;
+  color: #909399;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 16px;
+  border-top: 1px solid #ebeef5;
+}
+
+.btn-confirm {
+  padding: 8px 16px;
+  background-color: #409EFF;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.btn-confirm:disabled {
+  background-color: #a0cfff;
+  cursor: not-allowed;
+}
+
+.btn-confirm:hover:not(:disabled) {
+  background-color: #66b1ff;
+}
+
+.btn-cancel {
+  padding: 8px 16px;
+  background: none;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.btn-cancel:hover {
+  background: #f5f7fa;
+}
+</style>

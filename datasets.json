@@ -1,0 +1,36 @@
+{
+  "total": 3,
+  "items": [
+    {
+      "id": "D000000",
+      "name": "test0",
+      "type": "实例分割",
+      "createdAt": "2025-06-04 09:11:57",
+      "createdBy": "未登入",
+      "storagePath": "C:\\Users\\Administrator\\Desktop\\bmdz",
+      "totalCount": 30,
+      "trainCount": 21,
+      "valCount": 6,
+      "testCount": 3
+    },
+    {
+      "id": "D000001",
+      "name": "45353",
+      "type": "实例分割",
+      "createdAt": "2025-06-04 11:23:57",
+      "createdBy": "未登入",
+      "storagePath": "C:\\Users\\Administrator\\Desktop\\bmdz",
+      "totalCount": 30,
+      "trainCount": 21,
+      "valCount": 6,
+      "testCount": 3
+    },
+    {
+      "id": "D000002",
+      "name": " 54636",
+      "type": "实例分割",
+      "createdAt": "2025-06-13 09:30:44",
+      "createdBy": "未登入"
+    }
+  ]
+}

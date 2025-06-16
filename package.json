@@ -1,0 +1,26 @@
+{
+  "name": "ai-app",
+  "productName": "罗博ai训练平台",
+  "version": "0.0.0",
+  "private": true,
+  "main": "electron/main.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "electron": "electron .",
+    "desktop": "node start-desktop.js",
+    "start": "electron electron/main.js"
+  },
+  "dependencies": {
+    "@electron/remote": "^2.1.2",
+    "vue": "^3.5.13",
+    "vue-router": "^4.5.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.2.3",
+    "electron": "^36.1.0",
+    "electron-builder": "^26.0.12",
+    "vite": "^6.2.4",
+    "vite-plugin-vue-devtools": "^7.7.2"
+  }
+}

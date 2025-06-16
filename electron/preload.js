@@ -1,0 +1,210 @@
+// preload.js
+const { contextBridge, ipcRenderer } = require('electron');
+const fs = require('fs');
+const path = require('path');
+
+contextBridge.exposeInMainWorld('electronAPI', {
+    // 窗口控制
+    minimize: () => ipcRenderer.send('window-minimize'),
+    maximize: () => ipcRenderer.send('window-maximize'),
+    close: () => ipcRenderer.send('window-close'),
+    openFolderDialog: () => ipcRenderer.invoke('open-folder-dialog'),
+
+    // 数据集操作
+    readDatasets: () => {
+        const datasetsPath = path.join(process.cwd(), 'datasets.json');
+        if (fs.existsSync(datasetsPath)) {
+            const raw = fs.readFileSync(datasetsPath, 'utf8');
+            return raw.trim() ? JSON.parse(raw) : { total: 0, items: [] };
+        }
+        return { total: 0, items: [] };
+    },
+
+    writeDatasets: (data) => {
+        const datasetsPath = path.join(process.cwd(), 'datasets.json');
+        fs.writeFileSync(datasetsPath, JSON.stringify(data, null, 2), 'utf8');
+    },
+
+    deleteDatasetById: (id) => {
+        const datasetsPath = path.join(process.cwd(), 'datasets.json');
+        if (!fs.existsSync(datasetsPath)) return false;
+        const raw = fs.readFileSync(datasetsPath, 'utf8');
+        const data = raw.trim() ? JSON.parse(raw) : { items: [] };
+        const idx = (data.items || []).findIndex(item => item.id === id);
+        if (idx !== -1) {
+            data.items.splice(idx, 1);
+            data.total = data.items.length;
+            fs.writeFileSync(datasetsPath, JSON.stringify(data, null, 2), 'utf8');
+            return true;
+        }
+        return false;
+    },
+
+    validateDataset: (storagePath, datasetType) => {
+        const normalizedPath = path.normalize(storagePath);
+
+        if (!fs.existsSync(normalizedPath)) {
+            return { success: false, error: '路径不存在' };
+        }
+
+        let imageFiles = [];
+
+        if (datasetType === '图像分类') {
+            const subdirs = fs.readdirSync(normalizedPath, { withFileTypes: true })
+                .filter(dirent => dirent.isDirectory())
+                .map(dirent => dirent.name);
+
+            for (const subdir of subdirs) {
+                const files = fs.readdirSync(path.join(normalizedPath, subdir));
+                for (const file of files) {
+                    const ext = path.extname(file).toLowerCase();
+                    if (!['.jpg', '.png', '.bmp'].includes(ext)) {
+                        return { success: false, error: `图像分类任务：类别目录 ${subdir} 中包含不支持的文件 ${file}` };
+                    }
+                }
+                imageFiles = imageFiles.concat(files);
+            }
+
+        } else if (['目标检测', '实例分割', '姿态估计'].includes(datasetType)) {
+            const labelsPath = path.join(normalizedPath, 'labels');
+            const imagesPath = path.join(normalizedPath, 'images');
+
+            if (!fs.existsSync(labelsPath) || !fs.existsSync(imagesPath)) {
+                return { success: false, error: 'labels 或 images 目录不存在' };
+            }
+
+            const labelFiles = fs.readdirSync(labelsPath);
+            for (const file of labelFiles) {
+                if (path.extname(file).toLowerCase() !== '.txt') {
+                    fs.unlinkSync(path.join(labelsPath, file));
+                }
+            }
+
+            const imageFilesTemp = fs.readdirSync(imagesPath);
+            for (const file of imageFilesTemp) {
+                if (!['.jpg', '.png', '.bmp'].includes(path.extname(file).toLowerCase())) {
+                    fs.unlinkSync(path.join(imagesPath, file));
+                } else {
+                    imageFiles.push(file);
+                }
+            }
+
+        } else {
+            return { success: false, error: `不支持的数据集类型：${datasetType}` };
+        }
+
+        return { success: true, files: imageFiles };
+    },
+
+    splitDataset: (storagePath, datasetType, imageFiles, splitRatios) => {
+        if (!['目标检测', '实例分割', '姿态估计'].includes(datasetType)) return;
+
+        const total = imageFiles.length;
+        const trainCount = Math.floor(total * (splitRatios.train / 100));
+        const valCount = Math.floor(total * (splitRatios.val / 100));
+        const testCount = total - trainCount - valCount;
+
+        const shuffled = imageFiles.sort(() => Math.random() - 0.5);
+        const train = shuffled.slice(0, trainCount);
+        const val = shuffled.slice(trainCount, trainCount + valCount);
+        const test = shuffled.slice(trainCount + valCount);
+
+        const imagesPath = path.join(storagePath, 'images');
+
+        try {
+            fs.writeFileSync(path.join(storagePath, 'train.txt'), train.map(f => path.join(imagesPath, f)).join('\n'));
+            fs.writeFileSync(path.join(storagePath, 'val.txt'), val.map(f => path.join(imagesPath, f)).join('\n'));
+            fs.writeFileSync(path.join(storagePath, 'test.txt'), test.map(f => path.join(imagesPath, f)).join('\n'));
+        } catch (err) {
+            return { success: false, error: '无法写入数据集划分文件' };
+        }
+
+        return {
+            success: true,
+            trainCount,
+            valCount,
+            testCount
+        };
+    },
+
+    writeDatasetInfo: (datasetInfo) => {
+        const filePath = path.join(process.cwd(), 'datasets.json');
+        let datasets = { total: 0, items: [] };
+
+        try {
+            if (fs.existsSync(filePath)) {
+                const data = fs.readFileSync(filePath, 'utf8');
+                if (data.trim()) {
+                    datasets = JSON.parse(data);
+                }
+            }
+
+            // 查找是否已有相同 ID 的项
+            const existingIndex = datasets.items.findIndex(item => item.id === datasetInfo.id);
+            if (existingIndex !== -1) {
+                // 如果找到了，进行替换
+                datasets.items[existingIndex] = datasetInfo;
+            } else {
+                // 如果没找到，追加
+                datasets.items.push(datasetInfo);
+            }
+
+            datasets.total = datasets.items.length;
+
+            fs.writeFileSync(filePath, JSON.stringify(datasets, null, 2), 'utf8');
+            return { success: true };
+        } catch (err) {
+            return { success: false, error: '写入 datasets.json 失败' };
+        }
+    },
+
+    // 文件/路径操作：用于项目管理
+    readProjects: () => {
+        const filePath = path.join(process.cwd(), 'projects.json');
+        if (fs.existsSync(filePath)) {
+            const raw = fs.readFileSync(filePath, 'utf8');
+            return raw.trim() ? JSON.parse(raw) : { total: 0, items: [] };
+        }
+        return { total: 0, items: [] };
+    },
+
+    writeProjects: (data) => {
+        const filePath = path.join(process.cwd(), 'projects.json');
+        fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
+    },
+
+    deleteProjectById: (id) => {
+        const filePath = path.join(process.cwd(), 'projects.json');
+        if (!fs.existsSync(filePath)) return false;
+
+        const raw = fs.readFileSync(filePath, 'utf8');
+        const data = raw.trim() ? JSON.parse(raw) : { items: [] };
+
+        const idx = (data.items || []).findIndex(item => item.id === id);
+        if (idx !== -1) {
+            data.items.splice(idx, 1);
+            data.total = data.items.length;
+            fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
+            return true;
+        }
+
+        return false;
+    },
+
+    loadDatasets:  () => {
+        const datasetsPath = path.join(process.cwd(), 'datasets.json');
+        try {
+            if (fs.existsSync(datasetsPath)) {
+                const rawData = fs.readFileSync(datasetsPath, 'utf8');
+                if (rawData.trim()) {
+                    const data = JSON.parse(rawData);
+                    return data;
+                }
+            }
+        } catch (error) {
+            console.error('读取 datasets.json 失败:', error);
+        }
+        return { items: [] };
+    }
+
+});
