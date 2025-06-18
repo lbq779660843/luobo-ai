@@ -1,5 +1,5 @@
 IDE: webstorm(https://www.bilibili.com/opus/977414752783302681?from=search&spm_id_from=333.337.0.0)
-     Vscode
+Vscode
 
 <video width="640" height="360" controls>
   <source src="src/assets/lbws.mp4" type="video/mp4">
