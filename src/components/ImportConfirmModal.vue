@@ -3,12 +3,22 @@
     <div class="modal-content">
       <div class="modal-header">
         <h2>创建信息</h2>
-        <button class="close-btn" @click="close">×</button>
+        <button class="doc-btn" title="
+                - 图像分类任务：
+            一级目录为‘存储路径’所在根目录，二级目录为类别目录数量不限，
+            类别目录中包含的必须是以'.jpg'或'.png'或'.bmp'结尾的图像文件
+
+- 目标检测任务、实例分割任务、姿态估计任务：
+            一级目录为‘存储路径’所在根目录，二级目录必须只有'labels'和'images'两个目录，
+            其中'labels'目录中必须包含的是以'.txt'结尾的标签文件，'images'必须包含的是以'.jpg'或'.png'或'.bmp'结尾的图像文件。
+         ">📖
+        </button>
+        <button class="close-btn" @click="emit('close')">×</button>
       </div>
       <div class="modal-body">
         <!-- 创建信息 -->
         <div class="info-group">
-<!--          <h3>创建信息</h3>-->
+          <!--          <h3>创建信息</h3>-->
           <p><strong>ID:</strong> {{ dataset.id }}</p>
           <p><strong>类型:</strong> {{ dataset.type }}</p>
           <p><strong>描述:</strong> {{ dataset.description || '无描述' }}</p>
@@ -23,7 +33,7 @@
           </p>
           <div class="path-selector">
             <label>存储路径:</label>
-            <input type="text" v-model="storagePath" placeholder="请输入存储路径" @input="logStoragePath" />
+            <input type="text" v-model="storagePath" placeholder="请输入存储路径" @input="logStoragePath"/>
             <button class="btn-browse" @click="openFileExplorer">🔍</button>
           </div>
           <!-- 数据集划分（仅对目标检测、实例分割、姿态估计任务显示） -->
@@ -37,17 +47,18 @@
             <div class="split-inputs">
               <div class="split-input">
                 <label>训练集比例:</label>
-                <input type="number" v-model.number="splitRatios.train" min="0" max="100" @input="adjustRatios('train')" />%
+                <input type="number" v-model.number="splitRatios.train" min="0" max="100"
+                       @input="adjustRatios('train')"/>%
                 <span v-if="isImported" class="count">训练集数量: {{ trainCount }}</span>
               </div>
               <div class="split-input">
                 <label>验证集比例:</label>
-                <input type="number" v-model.number="splitRatios.val" min="0" max="100" @input="adjustRatios('val')" />%
+                <input type="number" v-model.number="splitRatios.val" min="0" max="100" @input="adjustRatios('val')"/>%
                 <span v-if="isImported" class="count">验证集数量: {{ valCount }}</span>
               </div>
               <div class="split-input">
                 <label>测试集比例:</label>
-                <input type="number" v-model.number="splitRatios.test" min="0" max="100" @input="adjustRatios('test')" />%
+                <input type="number" v-model.number="splitRatios.test" min="0" max="100" @input="adjustRatios('test')"/>%
                 <span v-if="isImported" class="count">测试集数量: {{ testCount }}</span>
               </div>
             </div>
@@ -55,20 +66,30 @@
           </div>
         </div>
 
-        <!-- 数据集导入规则说明 -->
+        <!-- 数据预览 -->
         <div class="info-group">
-          <h3>数据集导入规则说明</h3>
-          <p>
-            - 图像分类任务：<br />
-            一级目录为‘存储路径’所在根目录，二级目录为类别目录数量不限，<br />
-            类别目录中包含的必须是以'.jpg'或'.png'或'.bmp'结尾的图像文件<br />
-            <br />
-            - 目标检测任务、实例分割任务、姿态估计任务：<br />
-            一级目录为‘存储路径’所在根目录，二级目录必须只有'labels'和'images'两个目录，<br />
-            其中'labels'目录中必须包含的是以'.txt'结尾的标签文件，'images'必须包含的是以'.jpg'或'.png'或'.bmp'结尾的图像文件。<br />
-          </p>
+          <h3>全部数据预览</h3>
+          <div class="image-preview" v-if="imageFiles.length">
+            <div class="image-grid">
+              <img
+                  v-for="(img, index) in pagedImages"
+                  :key="index"
+                  :src="img.base64"
+                  class="preview-img"
+              />
+            </div>
+            <div class="pagination">
+              <button @click="prevPage" :disabled="currentPage === 1">上一页</button>
+              <span>第 {{ currentPage }} 页 / 共 {{ totalPages }} 页</span>
+              <button @click="nextPage" :disabled="currentPage === totalPages">下一页</button>
+            </div>
+          </div>
         </div>
+
+
       </div>
+
+
       <div class="modal-footer">
         <button class="btn-confirm" @click="confirmImport" :disabled="!storagePath">确定导入</button>
         <button class="btn-cancel" @click="close">退出</button>
@@ -78,23 +99,63 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import {ref, computed, watch} from 'vue'
+import path from 'path-browserify'; // 引入 path 模块
 
-const props = defineProps({
-  visible: Boolean,
-  dataset: Object,
-});
-
-const emit = defineEmits(['close', 'import-success']);
-
+// 当前页和分页控制
+const currentPage = ref(1)
+const itemsPerPage = 10
+const allImages = ref([])
+const emit = defineEmits(['import-success']);
 const storagePath = ref('');
-const splitRatios = ref({ train: 70, val: 20, test: 10 });
+const splitRatios = ref({train: 70, val: 20, test: 10});
 const splitError = ref('');
 const isImported = ref(false);
 const trainCount = ref(0);
 const valCount = ref(0);
 const testCount = ref(0);
 const imageFiles = ref([]);
+const datasetStatus = ref('未校验');
+
+// 从路径中加载 images 目录下图像
+async function loadImageFiles() {
+  console.log("storagePath.value：", storagePath.value); //
+  imageFiles.value = [];  // ✅ 清空上一次的图像
+  currentPage.value = 1;  // ✅ 重置分页
+  const imageDir = path.join(storagePath.value, 'images');
+  const result = await window.electronAPI.getImagesFromDir(imageDir);
+  if (result.success) {
+    console.log("读取到的文件列表：", result.files); // ✅ 检查 base64 字段
+    imageFiles.value = result.files; // files 是 [{ name, base64, fullPath }, ...]
+    datasetStatus.value = '已校验';
+    isImported.value = true;
+  } else {
+    alert(`读取图像失败：${result.error}`);
+  }
+}
+
+// script 部分
+const pagedImages = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage;
+  return imageFiles.value.slice(start, start + itemsPerPage);
+});
+
+const totalPages = computed(() => Math.ceil(imageFiles.value.length / itemsPerPage));
+
+function prevPage() {
+  if (currentPage.value > 1) currentPage.value--;
+}
+
+function nextPage() {
+  if (currentPage.value < totalPages.value) currentPage.value++;
+}
+
+
+const props = defineProps({
+  visible: Boolean,
+  dataset: Object,
+});
+
 
 function logStoragePath() {
   console.log('storagePath updated:', storagePath.value);
@@ -105,10 +166,20 @@ async function openFileExplorer() {
   if (selectedPath) {
     storagePath.value = selectedPath;
     logStoragePath();
+
   }
 }
 
 function close() {
+  // ✅ 初始化所有状态
+  currentPage.value = 1;
+  allImages.value = [];
+  storagePath.value = '';
+  splitRatios.value = {train: 70, val: 20, test: 10};
+  splitError.value = '';
+  isImported.value = false;
+  imageFiles.value = [];
+  datasetStatus.value = '未校验';
   emit('close');
 }
 
@@ -118,22 +189,36 @@ function adjustRatios() {
   if (!splitError.value) calculateCounts();
 }
 
-function calculateCounts() {
+async function calculateCounts() {
   const total = imageFiles.value.length;
   trainCount.value = Math.floor(total * (splitRatios.value.train / 100));
   valCount.value = Math.floor(total * (splitRatios.value.val / 100));
   testCount.value = total - trainCount.value - valCount.value;
+
+  const shuffled = [...imageFiles.value];
+  shuffled.sort(() => Math.random() - 0.5); // 打乱顺序
+
+  const trainImages = shuffled.slice(0, trainCount.value);
+  const valImages = shuffled.slice(trainCount.value, trainCount.value + valCount.value);
+  const testImages = shuffled.slice(trainCount.value + valCount.value);
+
+  const fileDataMap = {
+    'train.txt': trainImages,
+    'val.txt': valImages,
+    'test.txt': testImages,
+  };
+
+  const result = await window.electronAPI.writeTextFiles(storagePath.value, fileDataMap);
+
+  if (!result.success) {
+    alert(`写入数据集划分文件失败：${result.error}`);
+  }
 }
 
-function generateDatasetId() {
-  const prefix = 'D';
-  const randomDigits = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
-  return prefix + randomDigits;
-}
 
 async function confirmImport() {
   console.log('Confirming with storagePath:', storagePath.value);
-
+  await loadImageFiles();
   if (splitError.value) {
     alert('请修正数据集划分比例！');
     return;
@@ -186,7 +271,7 @@ async function confirmImport() {
     name: props.dataset.name,
     type: props.dataset.type,
     createdAt: formatDate,
-    createdBy: '未登入',
+    createdBy: datasetStatus.value,
     storagePath: storagePath.value,
     totalCount,
     trainCount,
@@ -202,7 +287,8 @@ async function confirmImport() {
   }
 
   isImported.value = true;
-  emit('import-success', props.dataset); // props.dataset 中应包含 id
+  emit('import-success', props.dataset); // props.dataset 中应包含
+
 }
 
 </script>
@@ -438,5 +524,50 @@ async function confirmImport() {
 
 .btn-cancel:hover {
   background: #f5f7fa;
+}
+
+.header-buttons {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.doc-btn {
+  font-size: 18px;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.preview-img {
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
+  margin: 4px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.image-grid {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.pagination {
+  margin-top: 10px;
+}
+
+.pagination button {
+  margin-right: 5px;
+  padding: 4px 8px;
+  border: 1px solid #ccc;
+  background: #f8f8f8;
+  cursor: pointer;
+}
+
+.pagination button.active {
+  background-color: #007bff;
+  color: white;
+  font-weight: bold;
 }
 </style>

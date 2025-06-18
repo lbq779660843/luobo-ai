@@ -22,6 +22,7 @@
         <th>创建时间</th>
         <th>路径</th>
         <th>总数</th>
+        <th>状态</th>
         <th>操作</th>
       </tr>
       </thead>
@@ -33,8 +34,24 @@
         <td>{{ item.createdAt }}</td>
         <td class="path-cell" :title="item.storagePath">{{ item.storagePath || '-' }}</td>
         <td>{{ item.totalCount ?? '-' }}</td>
+        <td>{{ item.createdBy || '-' }}</td>
         <td>
-          <button class="btn-action" @click="showImportModal(item)">配置</button>
+          <button
+              class="btn-action"
+              :class="item.createdBy === '已校验' ? 'btn-danger' : 'btn-success'"
+              @click="showImportModal(item)"
+          >
+            配置
+          </button>
+
+          <!-- 查看按钮 -->
+          <button
+              class="btn-action"
+              :class="item.createdBy === '已校验' ? 'btn-success' : 'btn-danger'"
+              @click="viewDataset(item)"
+          >
+            查看
+          </button>
           <button class="btn-action" @click="deleteDataset(item)">删除</button>
         </td>
       </tr>
@@ -60,7 +77,9 @@ import { ref, computed } from 'vue';
 import ModuleLayout from '../components/ModuleLayout.vue';
 import CreateDatasetModal from '../components/CreateDatasetModal.vue';
 import ImportConfirmModal from '../components/ImportConfirmModal.vue';
+import { useRouter } from 'vue-router';
 
+const router = useRouter();
 const currentPage = ref(1);
 const pageSize = 10;
 const totalItems = ref(0);
@@ -118,7 +137,7 @@ async function handleCreate(form) {
     name: form.name || '未命名',
     type: form.task || '未指定',
     createdAt: new Date().toISOString().slice(0, 19).replace('T', ' '),
-    createdBy: '未登入'
+    createdBy: '未校验'
   };
 
   arr.push(item);
@@ -144,8 +163,17 @@ async function deleteDataset(item) {
 
 function showCreateModal() { showCreate.value=true; }
 function showImportModal(item) { selectedDataset.value=item; showImport.value=true; }
-function handleImportSuccess() { fetchDatasets(); showImport.value=false; }
+function handleImportSuccess() { fetchDatasets(); }
 function changePage(page){ currentPage.value=page; fetchDatasets(); }
+function viewDataset(item) {
+  // 这里可以用 Vue Router 或弹窗，先假设你用的是 <router-view>
+  router.push({
+    name: 'DatasetPreview', // 路由名称
+    query: {
+      path: item.storagePath
+    }
+  });
+}
 
 fetchDatasets();
 </script>
@@ -159,5 +187,13 @@ fetchDatasets();
 .pagination{margin-top:16px; text-align:center;}
 .pagination button{margin:0 8px; padding:6px 12px;border:1px solid #dcdfe6;border-radius:4px;background:none;}
 .path-cell {max-width: 200px;overflow: hidden;white-space: nowrap;text-overflow: ellipsis;}
+.btn-success {
+  background-color: #28a745;
+  color: white;
+}
+.btn-danger {
+  background-color: #dc3545;
+  color: white;
+}
 
 </style>

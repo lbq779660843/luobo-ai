@@ -1,78 +1,100 @@
 <template>
-  <div class="container">
-    <CardModule
-        v-for="item in cards"
-        :key="item.title"
-        :title="item.title"
-        :description="item.description"
-        :image="item.image"
-    >
-      <template #actions>
-        <button class="btn" @click="onClick(item)">进入</button>
-      </template>
-    </CardModule>
+  <!-- 背景视频 -->
+  <video autoplay muted loop class="background-video">
+    <source src="../assets/lbws.mp4" type="video/mp4" />
+    您的浏览器不支持 video 标签。
+  </video>
+
+  <!-- 固定在底部偏上位置的按钮 -->
+  <div class="button-container">
+    <button class="start-btn" @click="goToDataset">
+      开启罗博深度学习
+    </button>
   </div>
-  <div class="footer"></div>
 </template>
 
 <script setup>
-import CardModule from '../components/CardModule.vue';
-import trainImg from '../assets/train.png'
-import deployImg from '../assets/deploy.png'
-import dataImg from '../assets/data.png'
-import taskManagementImg from '../assets/task_management.png';
-import {useRouter} from 'vue-router';
-
+import { useRouter } from 'vue-router';
 const router = useRouter();
-//console.log('process.cwd() ', process.cwd() )
-const cards = [
-  {title: '模型训练', description: '配置数据集，启动训练流程', image: trainImg, path: '/train'},
-  {title: '数据集管理', description: '上传与标注您的数据', image: dataImg, path: '/dataset'},
-  {title: '任务管理', description: '管理您的训练和部署任务', image: taskManagementImg, path: '/task'},
-  {title: '模型部署', description: '将模型导出到推理环境', image: deployImg, path: '/deploy'},
-];
 
-function onClick(item) {
-  router.push(item.path);
-  //console.log('点击了：', item.title);
+function goToDataset() {
+  router.push('/dataset');
 }
 </script>
 
 <style scoped>
-.footer {
+.background-video {
   position: fixed;
-  bottom: 0;
+  top: 0;
   left: 0;
+  width: 100vw;
+  height: 100vh;
+  object-fit: cover;
+  z-index: -1;
+}
+
+/* 改为 absolute 定位 */
+.button-container {
+  position: absolute;
+  bottom: 120px; /* 距离底部 120px，响应缩放 */
   width: 100%;
-  height: 6px;
-  background: #f0f0f0;
-}
-
-.container {
-  display: grid;
-  grid-template-columns: repeat(2, auto);
-  grid-template-rows: repeat(2, auto); /* 两行 */
-  gap: 20px;
+  display: flex;
   justify-content: center;
-  align-items: center; /* 纵向居中 */
-  padding: 8px 0;
-  background: #F7F8FA;
-  box-sizing: border-box;
+  z-index: 1;
 }
 
-
-.btn {
-  padding: 6px 20px;
-  background-color: #409EFF;
+.start-btn {
+  padding: 18px 48px;
+  font-size: 22px;
+  font-weight: bold;
+  background: linear-gradient(135deg, #409EFF, #66b1ff);
   color: white;
-  font-size: 14px;
   border: none;
-  border-radius: 6px;
-  transition: background-color 0.2s ease;
-  box-shadow: 0 2px 6px rgba(64, 158, 255, 0.3);
+  border-radius: 30px;
+  box-shadow: 0 8px 24px rgba(64, 158, 255, 0.5);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  opacity: 0;
+  animation: fadeInUp 1s ease forwards, pulse 2.5s infinite ease-in-out;
 }
 
-.btn:hover {
-  background-color: #66b1ff;
+.start-btn:hover {
+  background: linear-gradient(135deg, #66b1ff, #409EFF);
+  transform: scale(1.1);
+  box-shadow: 0 10px 30px rgba(64, 158, 255, 0.6);
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 20px rgba(64, 158, 255, 0.4);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 35px rgba(64, 158, 255, 0.6);
+  }
+}
+</style>
+
+<style>
+html, body {
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+::-webkit-scrollbar {
+  display: none;
 }
 </style>

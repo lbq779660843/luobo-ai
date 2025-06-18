@@ -205,6 +205,56 @@ contextBridge.exposeInMainWorld('electronAPI', {
             console.error('读取 datasets.json 失败:', error);
         }
         return { items: [] };
-    }
+    },
+
+    readImageFiles: async (dirPath) => {
+        try {
+            const files = fs.readdirSync(dirPath)
+            const imageFiles = files
+                .filter((f) => /\.(jpg|jpeg|png|bmp)$/i.test(f))
+                .map((f) => 'file://' + path.join(dirPath, f))
+            return { success: true, files: imageFiles }
+        } catch (error) {
+            return { success: false, error: error.message }
+        }
+    },
+
+    // 读取指定目录下的图像文件
+    getImagesFromDir: async (dirPath) => {
+        try {
+            const files = fs.readdirSync(dirPath).filter(file => {
+                const ext = path.extname(file).toLowerCase();
+                return ['.jpg', '.jpeg', '.png', '.bmp'].includes(ext);
+            });
+
+            const images = files.map(file => {
+                const fullPath = path.join(dirPath, file);
+                const ext = path.extname(file).toLowerCase();
+                const mime = {
+                    '.jpg': 'image/jpeg',
+                    '.jpeg': 'image/jpeg',
+                    '.png': 'image/png',
+                    '.bmp': 'image/bmp',
+                }[ext] || 'application/octet-stream';
+
+                const buffer = fs.readFileSync(fullPath);
+                const base64 = buffer.toString('base64');
+                const dataUrl = `data:${mime};base64,${base64}`;
+
+                return {
+                    name: file,
+                    fullPath,
+                    base64: dataUrl,
+                };
+            });
+
+            return { success: true, files: images };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    },
+
+    writeTextFiles: (basePath, fileDataMap) => ipcRenderer.invoke('write-text-files', basePath, fileDataMap),
+
 
 });

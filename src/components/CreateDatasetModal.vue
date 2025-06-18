@@ -3,18 +3,18 @@
   <div class="modal" v-if="visible">
     <div class="modal-content">
       <div class="modal-header">
-        <h2>新建项目</h2>
+        <h2>新建数据集</h2>
         <button class="close-btn" @click="close">×</button>
       </div>
       <div class="modal-body">
         <div class="form-group">
-          <label>项目名称:<span class="required">*</span></label>
-          <input v-model="form.name" placeholder="我的新项目" />
+          <label>数据集名称:<span class="required">*</span></label>
+          <input v-model="form.name" placeholder="我的新数据集" />
           <p v-if="errors.name" class="error">{{ errors.name }}</p>
         </div>
         <div class="form-group">
-          <label>项目描述:</label>
-          <textarea v-model="form.description" placeholder="简单描述项目用途"></textarea>
+          <label>数据集描述:</label>
+          <textarea v-model="form.description" placeholder="简单描述数据集用途"></textarea>
         </div>
         <div class="form-group">
           <label>任务类型:<span class="required">*</span></label>
@@ -70,7 +70,7 @@ const isFormValid = computed(() => {
   errors.value.task = '';
 
   if (!form.value.name.trim()) {
-    errors.value.name = '项目名称不能为空';
+    errors.value.name = '数据集名称不能为空';
     valid = false;
   }
 

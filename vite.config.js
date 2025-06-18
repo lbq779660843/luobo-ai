@@ -8,5 +8,10 @@ export default defineConfig({
   build: {
     outDir: path.resolve(__dirname, 'dist'),  // 输出目录供 Electron 使用
     emptyOutDir: true
-  }
+  },
+  resolve: {
+    alias: {
+      path: 'path-browserify',
+    },
+  },
 });

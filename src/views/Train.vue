@@ -72,9 +72,6 @@ import { onMounted } from 'vue';
 onMounted(() => {
   fetchProjects();
 });
-// 直接使用 require 加载 Node.js 模块
-/*const fs = require('fs');
-const path = require('path');*/
 
 // 分页相关
 const currentPage = ref(1);
@@ -165,7 +162,7 @@ async function handleCreate(form) {
     type: form.task || '未指定',
     description: form.description || '',
     createdAt: new Date().toISOString().slice(0, 19).replace('T', ' '),
-    createdBy: '未登入'
+    createdBy: '未校验'
   };
 
   arr.push(item);

@@ -23,7 +23,13 @@ const routes = [
     {
         path: '/deploy',
         component: () => import('../views/Deploy.vue')
+    },
+    {
+        path: '/dataset-preview',
+        name: 'DatasetPreview',
+        component: () => import('../components/DatasetPreview.vue')
     }
+
 
 ];
 

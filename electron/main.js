@@ -59,3 +59,15 @@ ipcMain.on('window-maximize', () => {
     }
 });
 ipcMain.on('window-close', () => win.close());
+
+ipcMain.handle('write-text-files', async (event, basePath, fileDataMap) => {
+    try {
+        for (const [filename, lines] of Object.entries(fileDataMap)) {
+            const fullPath = path.join(basePath, filename);
+            fs.writeFileSync(fullPath, lines.join('\n'), 'utf-8');
+        }
+        return { success: true };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+});

@@ -3,251 +3,268 @@
   <div class="modal" v-if="visible">
     <div class="modal-content">
       <div class="modal-header">
-        <h2>项目配置 - {{ project.name }}</h2>
+        <h2>项目配置与训练 - {{ project.name }}</h2>
         <button class="close-btn" @click="close">×</button>
       </div>
       <div class="modal-body">
         <!-- 步骤导航 -->
         <div class="steps">
-          <div class="step" :class="{ active: currentStep === 1 }">1. 数据集选择</div>
-          <div class="step" :class="{ active: currentStep === 2 }">2. 模型选择</div>
-          <div class="step" :class="{ active: currentStep === 3 }">3. 超参数配置</div>
-          <div class="step" :class="{ active: currentStep === 4 }">4. 训练设置</div>
-          <div class="step" :class="{ active: currentStep === 5 }">5. 确认并启动</div>
+          <div class="step" :class="{ active: currentStep === 1 }">1. 数据集和模型选择</div>
+          <div class="step" :class="{ active: currentStep === 2 }">2. 训练参数设置</div>
+          <div class="step" :class="{ active: currentStep === 3 }">3. 模型超参数设置</div>
+          <div class="step" :class="{ active: currentStep === 4 }">4. 确认并启动</div>
         </div>
 
         <!-- 步骤内容 -->
         <div class="step-content">
-          <!-- 步骤 1: 数据集选择 -->
+          <!-- 合并后的步骤 1+2 -->
           <div v-if="currentStep === 1">
-            <h3>数据集选择</h3>
-            <div class="form-group">
-              <label>选择数据集:<span class="required">*</span></label>
-              <select v-model="selectedDatasetId" @change="loadDatasetStats">
-                <option value="" disabled>请选择数据集</option>
-                <option v-for="dataset in datasets" :key="dataset.id" :value="dataset.id">
-                  {{ dataset.name }}
+            <!-- 步骤标题 -->
+            <h3>数据集和模型选择</h3>
+
+            <!-- 数据集选择行 -->
+            <div class="form-group horizontal-group">
+              <label for="dataset">数据集：</label>
+              <select v-model="selectedDatasetId" @change="loadDatasetStats" class="dataset-select">
+                <option value="">请选择数据集</option>
+                <option v-for="d in datasets" :key="d.id" :value="d.id">
+                  {{ d.name }}
                 </option>
               </select>
-              <p v-if="errors.dataset" class="error">{{ errors.dataset }}</p>
             </div>
-            <div v-if="selectedDatasetId">
-              <div class="path-info">
-                <p>存储路径: {{ selectedDataset?.storagePath || '未指定' }}</p>
-              </div>
-              <div class="stats">
-                <p>标定集总数: {{ datasetStats.total }}</p>
-                <p>训练集数量: {{ datasetStats.train || 0 }}</p>
-                <p>验证集数量: {{ datasetStats.val || 0 }}</p>
-                <p>测试集数量: {{ datasetStats.test || 0 }}</p>
-              </div>
-            </div>
-          </div>
+            <div class="error-msg" v-if="errors.dataset">{{ errors.dataset }}</div>
 
-          <!-- 步骤 2: 模型选择 -->
-          <div v-if="currentStep === 2">
-            <h3>模型选择</h3>
-            <div class="form-group">
-              <label>选择模型:<span class="required">*</span></label>
-              <select v-model="selectedModel" @change="validateModel">
+            <!-- 路径 + 状态 + 分布合并显示 -->
+            <div class="dataset-info" v-if="selectedDataset">
+              <p><strong>数据集根目录：</strong>{{ selectedDataset.storagePath }}</p>
+              <p><strong>数据集类型：</strong>{{ selectedDataset.type }}</p>
+              <p><strong>数据集状态：</strong>{{ selectedDataset.createdBy }}</p>
+              <p>
+                <strong>数据集样本分布：</strong>
+                Train: {{ datasetStats.train }}，
+                Val: {{ datasetStats.val }}，
+                Test: {{ datasetStats.test }}，
+                Total: {{ computedTotal }}
+              </p>
+            </div>
+
+            <!-- 模型选择 -->
+            <div class="form-group horizontal-group">
+              <label for="model">模型：</label>
+              <select v-model="selectedModel" @change="validateModel" class="dataset-select">
                 <option value="" disabled>请选择模型</option>
                 <option v-for="model in availableModels" :key="model" :value="model">
-                  {{ model + '' }}
+                  {{ model }}
                 </option>
               </select>
-              <p v-if="errors.model" class="error">{{ errors.model }}</p>
             </div>
+            <div class="error-msg" v-if="errors.model">{{ errors.model }}</div>
           </div>
 
-          <!-- 步骤 3: 超参数配置 -->
-          <div v-if="currentStep === 3">
-            <h3>超参数配置</h3>
-            <div class="form-group">
-              <label>Task:</label>
-              <input v-model="hyperParams.task" type="text" placeholder="segment" />
+          <!-- 步骤 2: 训练参数设置 -->
+          <div v-if="currentStep === 2">
+            <h3>训练参数设置</h3>
+            <div class="form-grid">
+
+              <div class="form-item">
+                <label>Task:</label>
+                <input v-model="hyperParams.task" type="text" placeholder="segment" />
+              </div>
+
+              <div class="form-item">
+                <label>Epochs:</label>
+                <input v-model.number="hyperParams.epochs" type="number" placeholder="2000" />
+              </div>
+
+              <div class="form-item">
+                <label>Patience:</label>
+                <input v-model.number="hyperParams.patience" type="number" placeholder="500" />
+              </div>
+
+              <div class="form-item">
+                <label>Batch:</label>
+                <input v-model.number="hyperParams.batch" type="number" placeholder="48" />
+              </div>
+
+              <div class="form-item">
+                <label>Image Size:</label>
+                <input v-model.number="hyperParams.imgsz" type="number" placeholder="640" />
+              </div>
+
+              <div class="form-item">
+                <label>Save:</label>
+                <input v-model="hyperParams.save" type="text" placeholder="True" />
+              </div>
+
+              <div class="form-item">
+                <label>Cache:</label>
+                <input v-model="hyperParams.cache" type="text" placeholder="True" />
+              </div>
+
+              <div class="form-item">
+                <label>Device:</label>
+                <input v-model.number="hyperParams.device" type="number" placeholder="0" />
+              </div>
+
+              <div class="form-item">
+                <label>Pretrained:</label>
+                <input v-model="hyperParams.pretrained" type="text" placeholder="True" />
+              </div>
+
+              <div class="form-item">
+                <label>Cos LR:</label>
+                <input v-model="hyperParams.cos_lr" type="text" placeholder="True" />
+              </div>
+
             </div>
-            <div class="form-group">
-              <label>Epochs:</label>
-              <input v-model.number="hyperParams.epochs" type="number" placeholder="1000" />
-            </div>
-            <div class="form-group">
-              <label>Patience:</label>
-              <input v-model.number="hyperParams.patience" type="number" placeholder="100" />
-            </div>
-            <div class="form-group">
-              <label>Batch:</label>
-              <input v-model.number="hyperParams.batch" type="number" placeholder="48" />
-            </div>
-            <div class="form-group">
-              <label>Image Size:</label>
-              <input v-model.number="hyperParams.imgsz" type="number" placeholder="768" />
-            </div>
-            <div class="form-group">
-              <label>Save:</label>
-              <input v-model="hyperParams.save" type="checkbox" true-value="true" false-value="false" />
-            </div>
-            <div class="form-group">
-              <label>Cache:</label>
-              <input v-model="hyperParams.cache" type="checkbox" true-value="false" false-value="false" />
-            </div>
-            <div class="form-group">
-              <label>Device:</label>
-              <input v-model.number="hyperParams.device" type="number" placeholder="0" />
-            </div>
-            <div class="form-group">
-              <label>Pretrained:</label>
-              <input v-model="hyperParams.pretrained" type="checkbox" true-value="true" false-value="false" />
-            </div>
-            <div class="form-group">
-              <label>Cos LR:</label>
-              <input v-model="hyperParams.cos_lr" type="checkbox" true-value="false" false-value="false" />
-            </div>
+
             <p v-if="errors.hyperParams" class="error">{{ errors.hyperParams }}</p>
           </div>
 
-          <!-- 步骤 4: 训练设置 -->
-          <div v-if="currentStep === 4">
-            <h3>训练设置</h3>
+
+          <!-- 步骤 3: 模型超参数设置 -->
+          <div v-if="currentStep === 3">
+            <h3>模型超参数设置</h3>
             <div class="form-group">
               <label>LR0:</label>
-              <input v-model.number="trainParams.lr0" type="number" step="0.01" placeholder="0.01" />
+              <input v-model.number="trainParams.lr0" type="number" step="0.01" placeholder="0.01"/>
             </div>
             <div class="form-group">
               <label>LRF:</label>
-              <input v-model.number="trainParams.lrf" type="number" step="0.01" placeholder="0.01" />
+              <input v-model.number="trainParams.lrf" type="number" step="0.01" placeholder="0.01"/>
             </div>
             <div class="form-group">
               <label>Momentum:</label>
-              <input v-model.number="trainParams.momentum" type="number" step="0.001" placeholder="0.937" />
+              <input v-model.number="trainParams.momentum" type="number" step="0.001" placeholder="0.937"/>
             </div>
             <div class="form-group">
               <label>Weight Decay:</label>
-              <input v-model.number="trainParams.weight_decay" type="number" step="0.0001" placeholder="0.0005" />
+              <input v-model.number="trainParams.weight_decay" type="number" step="0.0001" placeholder="0.0005"/>
             </div>
             <div class="form-group">
               <label>Warmup Epochs:</label>
-              <input v-model.number="trainParams.warmup_epochs" type="number" step="0.1" placeholder="3.0" />
+              <input v-model.number="trainParams.warmup_epochs" type="number" step="0.1" placeholder="3.0"/>
             </div>
             <div class="form-group">
               <label>Warmup Momentum:</label>
-              <input v-model.number="trainParams.warmup_momentum" type="number" step="0.1" placeholder="0.8" />
+              <input v-model.number="trainParams.warmup_momentum" type="number" step="0.1" placeholder="0.8"/>
             </div>
             <div class="form-group">
               <label>Warmup Bias LR:</label>
-              <input v-model.number="trainParams.warmup_bias_lr" type="number" step="0.1" placeholder="0.1" />
+              <input v-model.number="trainParams.warmup_bias_lr" type="number" step="0.1" placeholder="0.1"/>
             </div>
             <div class="form-group">
               <label>Box:</label>
-              <input v-model.number="trainParams.box" type="number" step="0.1" placeholder="7.5" />
+              <input v-model.number="trainParams.box" type="number" step="0.1" placeholder="7.5"/>
             </div>
             <div class="form-group">
               <label>Cls:</label>
-              <input v-model.number="trainParams.cls" type="number" step="0.1" placeholder="0.5" />
+              <input v-model.number="trainParams.cls" type="number" step="0.1" placeholder="0.5"/>
             </div>
             <div class="form-group">
               <label>Dfl:</label>
-              <input v-model.number="trainParams.dfl" type="number" step="0.1" placeholder="1.5" />
+              <input v-model.number="trainParams.dfl" type="number" step="0.1" placeholder="1.5"/>
             </div>
             <div class="form-group">
               <label>Pose:</label>
-              <input v-model.number="trainParams.pose" type="number" step="0.1" placeholder="12.0" />
+              <input v-model.number="trainParams.pose" type="number" step="0.1" placeholder="12.0"/>
             </div>
             <div class="form-group">
               <label>Kobj:</label>
-              <input v-model.number="trainParams.kobj" type="number" step="0.1" placeholder="1.0" />
+              <input v-model.number="trainParams.kobj" type="number" step="0.1" placeholder="1.0"/>
             </div>
             <div class="form-group">
               <label>Label Smoothing:</label>
-              <input v-model.number="trainParams.label_smoothing" type="number" step="0.1" placeholder="0.0" />
+              <input v-model.number="trainParams.label_smoothing" type="number" step="0.1" placeholder="0.0"/>
             </div>
             <div class="form-group">
               <label>NBS:</label>
-              <input v-model.number="trainParams.nbs" type="number" placeholder="64" />
+              <input v-model.number="trainParams.nbs" type="number" placeholder="64"/>
             </div>
             <div class="form-group">
               <label>HSV H:</label>
-              <input v-model.number="trainParams.hsv_h" type="number" step="0.001" placeholder="0.015" />
+              <input v-model.number="trainParams.hsv_h" type="number" step="0.001" placeholder="0.015"/>
             </div>
             <div class="form-group">
               <label>HSV S:</label>
-              <input v-model.number="trainParams.hsv_s" type="number" step="0.1" placeholder="0.7" />
+              <input v-model.number="trainParams.hsv_s" type="number" step="0.1" placeholder="0.7"/>
             </div>
             <div class="form-group">
               <label>HSV V:</label>
-              <input v-model.number="trainParams.hsv_v" type="number" step="0.1" placeholder="0.4" />
+              <input v-model.number="trainParams.hsv_v" type="number" step="0.1" placeholder="0.4"/>
             </div>
             <div class="form-group">
               <label>Degrees:</label>
-              <input v-model.number="trainParams.degrees" type="number" step="0.1" placeholder="0.0" />
+              <input v-model.number="trainParams.degrees" type="number" step="0.1" placeholder="0.0"/>
             </div>
             <div class="form-group">
               <label>Translate:</label>
-              <input v-model.number="trainParams.translate" type="number" step="0.1" placeholder="0.1" />
+              <input v-model.number="trainParams.translate" type="number" step="0.1" placeholder="0.1"/>
             </div>
             <div class="form-group">
               <label>Scale:</label>
-              <input v-model.number="trainParams.scale" type="number" step="0.1" placeholder="0.5" />
+              <input v-model.number="trainParams.scale" type="number" step="0.1" placeholder="0.5"/>
             </div>
             <div class="form-group">
               <label>Shear:</label>
-              <input v-model.number="trainParams.shear" type="number" step="0.1" placeholder="0.0" />
+              <input v-model.number="trainParams.shear" type="number" step="0.1" placeholder="0.0"/>
             </div>
             <div class="form-group">
               <label>Perspective:</label>
-              <input v-model.number="trainParams.perspective" type="number" step="0.1" placeholder="0.0" />
+              <input v-model.number="trainParams.perspective" type="number" step="0.1" placeholder="0.0"/>
             </div>
             <div class="form-group">
               <label>Flipud:</label>
-              <input v-model.number="trainParams.flipud" type="number" step="0.1" placeholder="0.0" />
+              <input v-model.number="trainParams.flipud" type="number" step="0.1" placeholder="0.0"/>
             </div>
             <div class="form-group">
               <label>Fliplr:</label>
-              <input v-model.number="trainParams.fliplr" type="number" step="0.1" placeholder="0.5" />
+              <input v-model.number="trainParams.fliplr" type="number" step="0.1" placeholder="0.5"/>
             </div>
             <div class="form-group">
               <label>BGR:</label>
-              <input v-model.number="trainParams.bgr" type="number" step="0.1" placeholder="0.0" />
+              <input v-model.number="trainParams.bgr" type="number" step="0.1" placeholder="0.0"/>
             </div>
             <div class="form-group">
               <label>Mosaic:</label>
-              <input v-model.number="trainParams.mosaic" type="number" step="0.1" placeholder="1.0" />
+              <input v-model.number="trainParams.mosaic" type="number" step="0.1" placeholder="1.0"/>
             </div>
             <div class="form-group">
               <label>Mixup:</label>
-              <input v-model.number="trainParams.mixup" type="number" step="0.1" placeholder="0.0" />
+              <input v-model.number="trainParams.mixup" type="number" step="0.1" placeholder="0.0"/>
             </div>
             <div class="form-group">
               <label>Copy Paste:</label>
-              <input v-model.number="trainParams.copy_paste" type="number" step="0.1" placeholder="0.0" />
+              <input v-model.number="trainParams.copy_paste" type="number" step="0.1" placeholder="0.0"/>
             </div>
             <div class="form-group">
               <label>Copy Paste Mode:</label>
-              <input v-model="trainParams.copy_paste_mode" type="text" placeholder="flip" />
+              <input v-model="trainParams.copy_paste_mode" type="text" placeholder="flip"/>
             </div>
             <div class="form-group">
               <label>Auto Augment:</label>
-              <input v-model="trainParams.auto_augment" type="text" placeholder="randaugment" />
+              <input v-model="trainParams.auto_augment" type="text" placeholder="randaugment"/>
             </div>
             <div class="form-group">
               <label>Erasing:</label>
-              <input v-model.number="trainParams.erasing" type="number" step="0.1" placeholder="0.4" />
+              <input v-model.number="trainParams.erasing" type="number" step="0.1" placeholder="0.4"/>
             </div>
             <div class="form-group">
               <label>Crop Fraction:</label>
-              <input v-model.number="trainParams.crop_fraction" type="number" step="0.1" placeholder="1.0" />
+              <input v-model.number="trainParams.crop_fraction" type="number" step="0.1" placeholder="1.0"/>
             </div>
             <p v-if="errors.trainParams" class="error">{{ errors.trainParams }}</p>
           </div>
 
           <!-- 步骤 5: 确认并启动 -->
-          <div v-if="currentStep === 5">
+          <div v-if="currentStep === 4">
             <h3>确认并启动</h3>
             <div class="summary">
               <h4>数据集信息</h4>
               <p>存储路径: {{ selectedDataset?.storagePath || '未指定' }}</p>
               <h4>模型选择</h4>
               <p>选择模型: {{ selectedModel + '.pth' }}</p>
-              <h4>超参数配置</h4>
+              <h4>训练参数设置</h4>
               <p>Task: {{ hyperParams.task }}</p>
               <p>Epochs: {{ hyperParams.epochs }}</p>
               <p>Patience: {{ hyperParams.patience }}</p>
@@ -265,7 +282,7 @@
       <div class="modal-footer">
         <button v-if="currentStep > 1" class="btn-prev" @click="currentStep--">上一步</button>
         <button v-if="currentStep < 5" class="btn-next" @click="nextStep">下一步</button>
-        <button v-if="currentStep === 5" class="btn-confirm" @click="confirmConfig">开始训练</button>
+        <button v-if="currentStep === 4" class="btn-confirm" @click="confirmConfig">开始训练</button>
         <button class="btn-cancel" @click="close">取消</button>
       </div>
     </div>
@@ -273,7 +290,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, computed } from 'vue';
+import {ref, onMounted, watch, computed} from 'vue';
 
 const props = defineProps({
   visible: Boolean,
@@ -286,17 +303,17 @@ const currentStep = ref(1);
 const selectedDatasetId = ref('');
 const datasets = ref([]);
 const selectedDataset = ref(null);
-const datasetStats = ref({ total: 0, train: 0, val: 0, test: 0 });
+const datasetStats = ref({total: 0, train: 0, val: 0, test: 0});
 const selectedModel = ref('');
-const errors = ref({ dataset: '', model: '', hyperParams: '', trainParams: '' });
+const errors = ref({dataset: '', model: '', hyperParams: '', trainParams: ''});
 
-// 超参数配置
+// 训练参数设置
 const hyperParams = ref({
   task: 'segment',
   epochs: 1000,
   patience: 100,
   batch: 48,
-  imgsz: 768,
+  imgsz: 640,
   save: true,
   cache: false,
   device: 0,
@@ -304,7 +321,7 @@ const hyperParams = ref({
   cos_lr: false,
 });
 
-// 训练设置
+// 模型超参数设置
 const trainParams = ref({
   lr0: 0.01,
   lrf: 0.01,
@@ -340,16 +357,14 @@ const trainParams = ref({
   crop_fraction: 1.0,
 });
 
-// 直接使用 require 加载 Node.js 模块
-// const fs = require('fs');
-// const path = require('path');
-
 // 模型选项
 const modelOptions = {
   '图像分类': ['YOLO11n-cls', 'YOLO11s-cls', 'YOLO11m-cls', 'YOLO11l-cls', 'YOLO11x-cls'],
   '目标检测': ['YOLO11n', 'YOLO11s', 'YOLO11m', 'YOLO11l', 'YOLO11x'],
-  '姿态估计': ['YOLO11n-pose', 'YOLO11s-pose', 'YOLO11m-pose', 'YOLO11l-pose', 'YOLO11x-pose'],
-  '实例分割': ['YOLO11n-seg', 'YOLO11s-seg', 'YOLO11m-seg', 'YOLO11l-seg', 'YOLO11x-seg'],
+  '姿态估计': ['YOLO11n-pose', 'YOLO11s-pose', 'YOLO11m-pose', 'YOLO11l-pose', 'YOLO11x-pose',
+    'YOLO11n-pose', 'YOLO11s-pose', 'YOLO11m-pose', 'YOLO11l-pose', 'YOLO11x-pose'],
+  '实例分割': ['YOLO11n-seg', 'YOLO11s-seg', 'YOLO11m-seg', 'YOLO11l-seg', 'YOLO11x-seg',
+    'YOLO12n-seg', 'YOLO12s-seg', 'YOLO12m-seg', 'YOLO12l-seg', 'YOLO12x-seg'],
 };
 
 // 计算可用模型
@@ -374,13 +389,12 @@ async function loadDatasets() {
   }
 }
 
-
 // 加载选定数据集的统计信息
 function loadDatasetStats() {
   errors.value.dataset = '';
   if (!selectedDatasetId.value) {
     selectedDataset.value = null;
-    datasetStats.value = { total: 0, train: 0, val: 0, test: 0 };
+    datasetStats.value = {total: 0, train: 0, val: 0, test: 0};
     selectedModel.value = '';
     return;
   }
@@ -389,17 +403,20 @@ function loadDatasetStats() {
   if (!dataset) {
     errors.value.dataset = '未找到选定数据集';
     selectedDataset.value = null;
-    datasetStats.value = { total: 0, train: 0, val: 0, test: 0 };
+    datasetStats.value = {total: 0, train: 0, val: 0, test: 0};
     selectedModel.value = '';
     return;
   }
+  //console.log(props.project.type , selectedDataset.value?.type);
 
   selectedDataset.value = dataset;
   datasetStats.value = {
     train: dataset.trainCount || 0,
     val: dataset.valCount || 0,
     test: dataset.testCount || 0,
-    total: computedTotal.value,
+    get total() {
+      return this.train + this.val + this.test;
+    },
   };
   selectedModel.value = availableModels.value[0] || ''; // 默认选择第一个模型
   hyperParams.value.task = dataset.type || 'segment'; // 设置 task 基于数据集类型
@@ -464,7 +481,12 @@ function validateTrainParams() {
 function nextStep() {
   if (currentStep.value === 1) {
     if (!selectedDatasetId.value) {
-      errors.value.dataset = '请选择一个数据集';
+      alert('请选择一个数据集!')
+      //errors.value.dataset = '请选择一个数据集';
+      return;
+    }
+    if(props.project.type !== selectedDataset.value?.type){
+      alert('数据集类型于任务类型不匹配，请重新选择数据集!')
       return;
     }
   } else if (currentStep.value === 2) {
@@ -485,9 +507,9 @@ function confirmConfig() {
   emit('config-success', {
     ...props.project,
     datasetId: selectedDatasetId.value,
-    model: selectedModel.value + '', // 确保输出时包含 
-    hyperParams: { ...hyperParams.value },
-    trainParams: { ...trainParams.value },
+    model: selectedModel.value ?? '',
+    hyperParams: {...hyperParams.value},
+    trainParams: {...trainParams.value},
   });
   close();
 }
@@ -496,14 +518,14 @@ function close() {
   currentStep.value = 1;
   selectedDatasetId.value = '';
   selectedDataset.value = null;
-  datasetStats.value = { total: 0, train: 0, val: 0, test: 0 };
+  datasetStats.value = {total: 0, train: 0, val: 0, test: 0};
   selectedModel.value = '';
   hyperParams.value = {
     task: 'segment',
     epochs: 1000,
     patience: 100,
     batch: 48,
-    imgsz: 768,
+    imgsz: 640,
     save: true,
     cache: false,
     device: 0,
@@ -544,22 +566,78 @@ function close() {
     erasing: 0.4,
     crop_fraction: 1.0,
   };
-  errors.value = { dataset: '', model: '', hyperParams: '', trainParams: '' };
+  errors.value = {dataset: '', model: '', hyperParams: '', trainParams: ''};
   emit('close');
 }
 
 // 组件加载时初始化
 onMounted(() => {
   loadDatasets();
-  // watch(() => props.visible, (newVal) => {
-  //   if (newVal) {
-  //     loadDatasets();
-  //   }
-  // });
 });
 </script>
 
 <style scoped>
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px 20px; /* 行列间距 */
+  margin-top: 10px;
+}
+
+.form-item {
+  display: flex;
+  align-items: center;
+}
+
+.form-item label {
+  white-space: nowrap;
+  margin-right: 8px;
+  font-weight: 500;
+  width: 80px; /* 控制标签宽度一致 */
+}
+
+.form-item input {
+  flex: 1;
+  padding: 6px 8px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.error {
+  color: red;
+  font-size: 13px;
+  margin-top: 10px;
+}
+
+.form-group.horizontal-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.dataset-select {
+  flex-grow: 1;
+  padding: 6px;
+  font-size: 14px;
+}
+
+.dataset-info {
+  margin-top: 10px;
+  padding: 10px;
+  background-color: #f6f8fa;
+  border-radius: 6px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.error-msg {
+  color: red;
+  font-size: 13px;
+  margin-top: 5px;
+}
+
 .modal {
   position: fixed;
   top: 0;
@@ -689,6 +767,35 @@ onMounted(() => {
   font-size: 14px;
   color: #606266;
 }
+
+.form-group.horizontal-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.dataset-select {
+  flex-grow: 1;
+  padding: 6px;
+  font-size: 14px;
+}
+
+.dataset-info {
+  margin-top: 10px;
+  padding: 10px;
+  background-color: #f6f8fa;
+  border-radius: 6px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.error-msg {
+  color: red;
+  font-size: 13px;
+  margin-top: 5px;
+}
+
 
 .stats {
   margin-top: 16px;
