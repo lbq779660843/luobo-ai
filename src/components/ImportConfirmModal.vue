@@ -119,7 +119,7 @@ const datasetStatus = ref('未校验');
 
 // 从路径中加载 images 目录下图像
 async function loadImageFiles() {
-  console.log("storagePath.value：", storagePath.value); //
+  //console.log("storagePath.value：", storagePath.value); //
   imageFiles.value = [];  // ✅ 清空上一次的图像
   currentPage.value = 1;  // ✅ 重置分页
   const imageDir = path.join(storagePath.value, 'images');
@@ -183,10 +183,12 @@ function close() {
   emit('close');
 }
 
-function adjustRatios() {
+async function adjustRatios() {
   const total = splitRatios.value.train + splitRatios.value.val + splitRatios.value.test;
   splitError.value = total !== 100 ? '训练集、验证集和测试集比例之和必须为 100%' : '';
-  if (!splitError.value) calculateCounts();
+  if (!splitError.value) {
+    await calculateCounts()
+  }
 }
 
 async function calculateCounts() {
@@ -203,21 +205,39 @@ async function calculateCounts() {
   const testImages = shuffled.slice(trainCount.value + valCount.value);
 
   const fileDataMap = {
-    'train.txt': trainImages,
-    'val.txt': valImages,
-    'test.txt': testImages,
+    'train.txt': trainImages.map(img => img.name),
+    'val.txt': valImages.map(img => img.name),
+    'test.txt': testImages.map(img => img.name),
   };
+
+
+  // 构造 yaml 内容
+  const yamlContent =
+      `path: ${storagePath.value}
+train: train.txt
+val: val.txt
+test: test.txt
+names:
+  0: NG`;
+
+  // 写入 dataset.yaml
+  //console.log("即将写入 YAML 文件:", yamlContent);
+  const yamlWriteResult = await window.electronAPI.writeYamlFile(storagePath.value, yamlContent);
+  if (!yamlWriteResult.success) {
+    alert(`写入 YAML 文件失败：${yamlWriteResult.error}`);
+  }
 
   const result = await window.electronAPI.writeTextFiles(storagePath.value, fileDataMap);
 
   if (!result.success) {
     alert(`写入数据集划分文件失败：${result.error}`);
   }
+
 }
 
 
 async function confirmImport() {
-  console.log('Confirming with storagePath:', storagePath.value);
+  //console.log('Confirming with storagePath:', storagePath.value);
   await loadImageFiles();
   if (splitError.value) {
     alert('请修正数据集划分比例！');
@@ -258,6 +278,9 @@ async function confirmImport() {
     trainCount = splitResult.trainCount;
     valCount = splitResult.valCount;
     testCount = splitResult.testCount;
+
+    // ✅ 调用写入 txt 和 dataset.yaml 的逻辑
+    await calculateCounts();
   }
 
   // 生成当前时间

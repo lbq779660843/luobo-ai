@@ -28,7 +28,13 @@ const routes = [
         path: '/dataset-preview',
         name: 'DatasetPreview',
         component: () => import('../components/DatasetPreview.vue')
-    }
+    },
+    {
+        path: '/tensorboard',
+        name: 'TensorBoard',
+        component: () => import('../views/TensorBoardView.vue')
+    },
+
 
 
 ];

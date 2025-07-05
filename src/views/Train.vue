@@ -1,5 +1,5 @@
 <template>
-  <ModuleLayout title="我的项目">
+  <ModuleLayout title="项目列表">
     <!-- 顶部区域 -->
     <div class="training-header">
       <button class="btn-create" @click="showCreateModal">+ 新建项目</button>
@@ -116,8 +116,6 @@ async function fetchProjects() {
     totalItems.value = 0;
   }
 }
-
-
 
 // 初始加载数据
 fetchProjects();

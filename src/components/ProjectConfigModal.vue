@@ -63,59 +63,110 @@
 
           <!-- 步骤 2: 训练参数设置 -->
           <div v-if="currentStep === 2">
-            <h3>训练参数设置</h3>
+            <div class="section-header">
+              <h3>训练参数设置</h3>
+              <span class="tooltip-icon" title="
+              主要调整的参数,无需特别专业的知识即可调整
+                task: 任务类型
+                data: 数据集配置路径 (如 lbws.yaml)
+                epochs: 每批图像数，越大越高效
+                Batch: 每次训练的批大小
+                patience: 早停策略耐心值
+                Image Size: 输入图像大小
+                device: 指定GPU编号
+                pretrained: 是否使用预训练模型
+                workers: 数据加载线程数
+                optimizer: 优化器类型
+                single_cls: 是否将所有类别都视为一类(在数据集比较混乱时启用)
+                project: 是否使用余弦学习率调度
+                amp: 是否启用混合精度训练
+                overlap_mask: 掩膜是否重叠(仅分割模型生效)
+                mask_ratio: 掩膜比例(仅分割模型生效)
+                dropout: dropout比例(仅分类模型生效)
+            ">❔</span>
+            </div>
             <div class="form-grid">
 
               <div class="form-item">
                 <label>Task:</label>
-                <input v-model="hyperParams.task" type="text" placeholder="segment" />
+                <input v-model="hyperParams.task" type="text" placeholder="segment"/>
+              </div>
+
+              <div class="form-item">
+                <label>data:</label>
+                <input v-model="hyperParams.data" type="text" placeholder="lbws-seg.yaml"/>
               </div>
 
               <div class="form-item">
                 <label>Epochs:</label>
-                <input v-model.number="hyperParams.epochs" type="number" placeholder="2000" />
-              </div>
-
-              <div class="form-item">
-                <label>Patience:</label>
-                <input v-model.number="hyperParams.patience" type="number" placeholder="500" />
+                <input v-model.number="hyperParams.epochs" type="number" placeholder="2000"/>
               </div>
 
               <div class="form-item">
                 <label>Batch:</label>
-                <input v-model.number="hyperParams.batch" type="number" placeholder="48" />
+                <input v-model.number="hyperParams.batch" type="number" placeholder="48"/>
               </div>
 
               <div class="form-item">
                 <label>Image Size:</label>
-                <input v-model.number="hyperParams.imgsz" type="number" placeholder="640" />
-              </div>
-
-              <div class="form-item">
-                <label>Save:</label>
-                <input v-model="hyperParams.save" type="text" placeholder="True" />
-              </div>
-
-              <div class="form-item">
-                <label>Cache:</label>
-                <input v-model="hyperParams.cache" type="text" placeholder="True" />
+                <input v-model.number="hyperParams.imgsz" type="number" placeholder="640"/>
               </div>
 
               <div class="form-item">
                 <label>Device:</label>
-                <input v-model.number="hyperParams.device" type="number" placeholder="0" />
+                <input v-model.number="hyperParams.device" type="number" placeholder="0"/>
               </div>
 
               <div class="form-item">
                 <label>Pretrained:</label>
-                <input v-model="hyperParams.pretrained" type="text" placeholder="True" />
+                <input v-model="hyperParams.pretrained" type="text" placeholder="True"/>
               </div>
 
               <div class="form-item">
-                <label>Cos LR:</label>
-                <input v-model="hyperParams.cos_lr" type="text" placeholder="True" />
+                <label>workers:</label>
+                <input v-model.number="hyperParams.workers" type="number" placeholder="4"/>
               </div>
 
+
+              <div class="form-item">
+                <label>Patience:</label>
+                <input v-model.number="hyperParams.patience" type="number" placeholder="500"/>
+              </div>
+
+              <div class="form-item">
+                <label>optimizer:</label>
+                <input v-model="hyperParams.optimizer" type="text" placeholder="auto"/>
+              </div>
+
+              <div class="form-item">
+                <label>single_cls:</label>
+                <input v-model="hyperParams.single_cls" type="text" placeholder="false"/>
+              </div>
+
+              <div class="form-item">
+                <label>project:</label>
+                <input v-model="hyperParams.project" type="text" placeholder="false"/>
+              </div>
+
+              <div class="form-item">
+                <label>amp:</label>
+                <input v-model="hyperParams.amp" type="text" placeholder="true"/>
+              </div>
+
+              <div class="form-item">
+                <label>overlap_mask:</label>
+                <input v-model="hyperParams.overlap_mask" type="text" placeholder="true"/>
+              </div>
+
+              <div class="form-item">
+                <label>mask_ratio:</label>
+                <input v-model.number="hyperParams.mask_ratio" type="number" placeholder="4"/>
+              </div>
+
+              <div class="form-item">
+                <label>dropout:</label>
+                <input v-model.number="hyperParams.dropout" type="number" placeholder="0.0"/>
+              </div>
             </div>
 
             <p v-if="errors.hyperParams" class="error">{{ errors.hyperParams }}</p>
@@ -125,164 +176,49 @@
           <!-- 步骤 3: 模型超参数设置 -->
           <div v-if="currentStep === 3">
             <h3>模型超参数设置</h3>
-            <div class="form-group">
-              <label>LR0:</label>
-              <input v-model.number="trainParams.lr0" type="number" step="0.01" placeholder="0.01"/>
-            </div>
-            <div class="form-group">
-              <label>LRF:</label>
-              <input v-model.number="trainParams.lrf" type="number" step="0.01" placeholder="0.01"/>
-            </div>
-            <div class="form-group">
-              <label>Momentum:</label>
-              <input v-model.number="trainParams.momentum" type="number" step="0.001" placeholder="0.937"/>
-            </div>
-            <div class="form-group">
-              <label>Weight Decay:</label>
-              <input v-model.number="trainParams.weight_decay" type="number" step="0.0001" placeholder="0.0005"/>
-            </div>
-            <div class="form-group">
-              <label>Warmup Epochs:</label>
-              <input v-model.number="trainParams.warmup_epochs" type="number" step="0.1" placeholder="3.0"/>
-            </div>
-            <div class="form-group">
-              <label>Warmup Momentum:</label>
-              <input v-model.number="trainParams.warmup_momentum" type="number" step="0.1" placeholder="0.8"/>
-            </div>
-            <div class="form-group">
-              <label>Warmup Bias LR:</label>
-              <input v-model.number="trainParams.warmup_bias_lr" type="number" step="0.1" placeholder="0.1"/>
-            </div>
-            <div class="form-group">
-              <label>Box:</label>
-              <input v-model.number="trainParams.box" type="number" step="0.1" placeholder="7.5"/>
-            </div>
-            <div class="form-group">
-              <label>Cls:</label>
-              <input v-model.number="trainParams.cls" type="number" step="0.1" placeholder="0.5"/>
-            </div>
-            <div class="form-group">
-              <label>Dfl:</label>
-              <input v-model.number="trainParams.dfl" type="number" step="0.1" placeholder="1.5"/>
-            </div>
-            <div class="form-group">
-              <label>Pose:</label>
-              <input v-model.number="trainParams.pose" type="number" step="0.1" placeholder="12.0"/>
-            </div>
-            <div class="form-group">
-              <label>Kobj:</label>
-              <input v-model.number="trainParams.kobj" type="number" step="0.1" placeholder="1.0"/>
-            </div>
-            <div class="form-group">
-              <label>Label Smoothing:</label>
-              <input v-model.number="trainParams.label_smoothing" type="number" step="0.1" placeholder="0.0"/>
-            </div>
-            <div class="form-group">
-              <label>NBS:</label>
-              <input v-model.number="trainParams.nbs" type="number" placeholder="64"/>
-            </div>
-            <div class="form-group">
-              <label>HSV H:</label>
-              <input v-model.number="trainParams.hsv_h" type="number" step="0.001" placeholder="0.015"/>
-            </div>
-            <div class="form-group">
-              <label>HSV S:</label>
-              <input v-model.number="trainParams.hsv_s" type="number" step="0.1" placeholder="0.7"/>
-            </div>
-            <div class="form-group">
-              <label>HSV V:</label>
-              <input v-model.number="trainParams.hsv_v" type="number" step="0.1" placeholder="0.4"/>
-            </div>
-            <div class="form-group">
-              <label>Degrees:</label>
-              <input v-model.number="trainParams.degrees" type="number" step="0.1" placeholder="0.0"/>
-            </div>
-            <div class="form-group">
-              <label>Translate:</label>
-              <input v-model.number="trainParams.translate" type="number" step="0.1" placeholder="0.1"/>
-            </div>
-            <div class="form-group">
-              <label>Scale:</label>
-              <input v-model.number="trainParams.scale" type="number" step="0.1" placeholder="0.5"/>
-            </div>
-            <div class="form-group">
-              <label>Shear:</label>
-              <input v-model.number="trainParams.shear" type="number" step="0.1" placeholder="0.0"/>
-            </div>
-            <div class="form-group">
-              <label>Perspective:</label>
-              <input v-model.number="trainParams.perspective" type="number" step="0.1" placeholder="0.0"/>
-            </div>
-            <div class="form-group">
-              <label>Flipud:</label>
-              <input v-model.number="trainParams.flipud" type="number" step="0.1" placeholder="0.0"/>
-            </div>
-            <div class="form-group">
-              <label>Fliplr:</label>
-              <input v-model.number="trainParams.fliplr" type="number" step="0.1" placeholder="0.5"/>
-            </div>
-            <div class="form-group">
-              <label>BGR:</label>
-              <input v-model.number="trainParams.bgr" type="number" step="0.1" placeholder="0.0"/>
-            </div>
-            <div class="form-group">
-              <label>Mosaic:</label>
-              <input v-model.number="trainParams.mosaic" type="number" step="0.1" placeholder="1.0"/>
-            </div>
-            <div class="form-group">
-              <label>Mixup:</label>
-              <input v-model.number="trainParams.mixup" type="number" step="0.1" placeholder="0.0"/>
-            </div>
-            <div class="form-group">
-              <label>Copy Paste:</label>
-              <input v-model.number="trainParams.copy_paste" type="number" step="0.1" placeholder="0.0"/>
-            </div>
-            <div class="form-group">
-              <label>Copy Paste Mode:</label>
-              <input v-model="trainParams.copy_paste_mode" type="text" placeholder="flip"/>
-            </div>
-            <div class="form-group">
-              <label>Auto Augment:</label>
-              <input v-model="trainParams.auto_augment" type="text" placeholder="randaugment"/>
-            </div>
-            <div class="form-group">
-              <label>Erasing:</label>
-              <input v-model.number="trainParams.erasing" type="number" step="0.1" placeholder="0.4"/>
-            </div>
-            <div class="form-group">
-              <label>Crop Fraction:</label>
-              <input v-model.number="trainParams.crop_fraction" type="number" step="0.1" placeholder="1.0"/>
+            <div class="form-grid-4col">
+
+              <div class="form-item" v-for="(field, key) in trainParamFields" :key="key">
+                <label :for="key">{{ field.label }}</label>
+                <input
+                    :id="key"
+                    v-model.number="trainParams[key]"
+                    :type="field.type || 'number'"
+                    :step="field.step"
+                    :placeholder="field.placeholder"
+                />
+              </div>
+
             </div>
             <p v-if="errors.trainParams" class="error">{{ errors.trainParams }}</p>
           </div>
 
-          <!-- 步骤 5: 确认并启动 -->
+
+          <!-- 步骤 4: 确认并启动 -->
           <div v-if="currentStep === 4">
-            <h3>确认并启动</h3>
+            <h3>数据配置预览</h3>
             <div class="summary">
               <h4>数据集信息</h4>
               <p>存储路径: {{ selectedDataset?.storagePath || '未指定' }}</p>
               <h4>模型选择</h4>
-              <p>选择模型: {{ selectedModel + '.pth' }}</p>
+              <p>选择模型: {{ selectedModel }}</p>
               <h4>训练参数设置</h4>
               <p>Task: {{ hyperParams.task }}</p>
+              <p>data: {{ hyperParams.data }}</p>
               <p>Epochs: {{ hyperParams.epochs }}</p>
-              <p>Patience: {{ hyperParams.patience }}</p>
               <p>Batch: {{ hyperParams.batch }}</p>
               <p>Image Size: {{ hyperParams.imgsz }}</p>
-              <p>Save: {{ hyperParams.save }}</p>
-              <p>Cache: {{ hyperParams.cache }}</p>
+              <p>Patience: {{ hyperParams.patience }}</p>
               <p>Device: {{ hyperParams.device }}</p>
               <p>Pretrained: {{ hyperParams.pretrained }}</p>
-              <p>Cos LR: {{ hyperParams.cos_lr }}</p>
             </div>
           </div>
         </div>
       </div>
       <div class="modal-footer">
         <button v-if="currentStep > 1" class="btn-prev" @click="currentStep--">上一步</button>
-        <button v-if="currentStep < 5" class="btn-next" @click="nextStep">下一步</button>
-        <button v-if="currentStep === 4" class="btn-confirm" @click="confirmConfig">开始训练</button>
+        <button v-if="currentStep < 4" class="btn-next" @click="nextStep">下一步</button>
+        <button v-if="currentStep === 4" class="btn-confirm" @click="startTraining">开始训练</button>
         <button class="btn-cancel" @click="close">取消</button>
       </div>
     </div>
@@ -310,15 +246,21 @@ const errors = ref({dataset: '', model: '', hyperParams: '', trainParams: ''});
 // 训练参数设置
 const hyperParams = ref({
   task: 'segment',
+  data: 'dataset.yaml',
   epochs: 1000,
   patience: 100,
-  batch: 48,
+  batch: 56,
   imgsz: 640,
-  save: true,
-  cache: false,
   device: 0,
   pretrained: true,
-  cos_lr: false,
+  workers: 4,
+  optimizer: 'SGD',
+  single_cls: false,
+  project: 'runs',
+  amp: true,
+  overlap_mask: true,
+  mask_ratio: 4,
+  dropout: 0.0
 });
 
 // 模型超参数设置
@@ -336,7 +278,6 @@ const trainParams = ref({
   pose: 12.0,
   kobj: 1.0,
   label_smoothing: 0.0,
-  nbs: 64,
   hsv_h: 0.015,
   hsv_s: 0.7,
   hsv_v: 0.4,
@@ -355,16 +296,56 @@ const trainParams = ref({
   auto_augment: 'randaugment',
   erasing: 0.4,
   crop_fraction: 1.0,
+  conf: 0.001,
+  iou: 0.7,
+  save_period: 300,
+  half: false,
+  plots: true,
 });
+const trainParamFields = {
+  conf: {label: 'conf', step: 0.001, placeholder: '0.001'},
+  iou: {label: 'iou', step: 0.1, placeholder: '0.7'},
+  lr0: {label: 'LR0', step: 0.01, placeholder: '0.01'},
+  lrf: {label: 'LRF', step: 0.01, placeholder: '0.01'},
+  momentum: {label: 'Momentum', step: 0.001, placeholder: '0.937'},
+  weight_decay: {label: 'Weight Decay', step: 0.0001, placeholder: '0.0005'},
+  warmup_epochs: {label: 'Warmup Epochs', step: 0.1, placeholder: '3.0'},
+  warmup_momentum: {label: 'Warmup Momentum', step: 0.1, placeholder: '0.8'},
+  warmup_bias_lr: {label: 'Warmup Bias LR', step: 0.1, placeholder: '0.1'},
+  box: {label: 'Box', step: 0.1, placeholder: '7.5'},
+  cls: {label: 'Cls', step: 0.1, placeholder: '0.5'},
+  dfl: {label: 'Dfl', step: 0.1, placeholder: '1.5'},
+  pose: {label: 'Pose', step: 0.1, placeholder: '12.0'},
+  kobj: {label: 'Kobj', step: 0.1, placeholder: '1.0'},
+  label_smoothing: {label: 'Label Smoothing', step: 0.1, placeholder: '0.0'},
+  hsv_h: {label: 'HSV H', step: 0.001, placeholder: '0.015'},
+  hsv_s: {label: 'HSV S', step: 0.1, placeholder: '0.7'},
+  hsv_v: {label: 'HSV V', step: 0.1, placeholder: '0.4'},
+  degrees: {label: 'Degrees', step: 0.1, placeholder: '0.0'},
+  translate: {label: 'Translate', step: 0.1, placeholder: '0.1'},
+  scale: {label: 'Scale', step: 0.1, placeholder: '0.5'},
+  shear: {label: 'Shear', step: 0.1, placeholder: '0.0'},
+  perspective: {label: 'Perspective', step: 0.1, placeholder: '0.0'},
+  flipud: {label: 'Flipud', step: 0.1, placeholder: '0.0'},
+  fliplr: {label: 'Fliplr', step: 0.1, placeholder: '0.5'},
+  bgr: {label: 'BGR', step: 0.1, placeholder: '0.0'},
+  mosaic: {label: 'Mosaic', step: 0.1, placeholder: '1.0'},
+  mixup: {label: 'Mixup', step: 0.1, placeholder: '0.0'},
+  copy_paste: {label: 'Copy Paste', step: 0.1, placeholder: '0.0'},
+  copy_paste_mode: {label: 'Copy Paste Mode', type: 'text', placeholder: 'flip'},
+  auto_augment: {label: 'Auto Augment', type: 'text', placeholder: 'randaugment'},
+  erasing: {label: 'Erasing', step: 0.1, placeholder: '0.4'},
+  crop_fraction: {label: 'Crop Fraction', step: 0.1, placeholder: '1.0'},
+};
 
 // 模型选项
 const modelOptions = {
-  '图像分类': ['YOLO11n-cls', 'YOLO11s-cls', 'YOLO11m-cls', 'YOLO11l-cls', 'YOLO11x-cls'],
-  '目标检测': ['YOLO11n', 'YOLO11s', 'YOLO11m', 'YOLO11l', 'YOLO11x'],
-  '姿态估计': ['YOLO11n-pose', 'YOLO11s-pose', 'YOLO11m-pose', 'YOLO11l-pose', 'YOLO11x-pose',
-    'YOLO11n-pose', 'YOLO11s-pose', 'YOLO11m-pose', 'YOLO11l-pose', 'YOLO11x-pose'],
-  '实例分割': ['YOLO11n-seg', 'YOLO11s-seg', 'YOLO11m-seg', 'YOLO11l-seg', 'YOLO11x-seg',
-    'YOLO12n-seg', 'YOLO12s-seg', 'YOLO12m-seg', 'YOLO12l-seg', 'YOLO12x-seg'],
+  '图像分类': ['yolo11n-cls.pt', 'yolo11s-cls.pt', 'yolo11m-cls.pt', 'yolo11l-cls.pt', 'yolo11x-cls.pt'],
+  '目标检测': ['yolo11n.pt', 'yolo11s.pt', 'yolo11m.pt', 'yolo11l.pt', 'yolo11x.pt'],
+  '姿态估计': ['yolo11n-pose.pt', 'yolo11s-pose.pt', 'yolo11m-pose.pt', 'yolo11l-pose.pt', 'yolo11x-pose.pt',
+    'yolo11n-pose.pt', 'yolo11s-pose.pt', 'yolo11m-pose.pt', 'yolo11l-pose.pt', 'yolo11x-pose.pt'],
+  '实例分割': ['yolo11n-seg.pt', 'yolo11s-seg.pt', 'yolo11m-seg.pt', 'yolo11l-seg.pt', 'yolo11x-seg.pt',
+    'yolov12n-seg.pt', 'yolov12s-seg.pt', 'yolov12m-seg.pt', 'yolov12l-seg.pt', 'yolov12x-seg.pt'],
 };
 
 // 计算可用模型
@@ -377,6 +358,80 @@ const availableModels = computed(() => {
 const computedTotal = computed(() => {
   return (datasetStats.value.train || 0) + (datasetStats.value.val || 0) + (datasetStats.value.test || 0);
 });
+
+async function startTraining() {
+  const args = [];
+
+  // 步骤 1：模型
+  if (selectedModel.value) {
+    const absModelPath = `E:\\Codes\\py\\yolov12-Seg\\${selectedModel.value}`;  // 绝对路径拼接
+    args.push('--model', absModelPath);
+  }
+
+// 步骤 2：添加 --data 参数为绝对路径
+  if (selectedDataset.value?.storagePath) {
+    const dataYamlPath = `${selectedDataset.value.storagePath}/dataset.yaml`;
+    args.push('--data', dataYamlPath);
+  }
+
+// 步骤 2：其余超参数
+  const hyperKeys = ['epochs', 'imgsz', 'batch', 'patience', 'device', 'workers', 'optimizer', 'mask_ratio', 'project'];
+  for (const key of hyperKeys) {
+    const value = hyperParams.value[key];
+    if (value !== undefined && value !== '') {
+      args.push(`--${key}`, String(value));
+    }
+  }
+
+
+  // 步骤 3：训练参数 (trainParams)
+  const trainKeys = [
+    'lr0', 'momentum', 'weight_decay', 'hsv_h', 'hsv_s', 'hsv_v', 'degrees',
+    'translate', 'scale', 'mosaic', 'copy_paste', 'erasing', 'warmup_epochs',
+    'close_mosaic', 'save_period'
+  ];
+  for (const key of trainKeys) {
+    const value = trainParams.value[key];
+    if (value !== undefined && value !== '') {
+      args.push(`--${key}`, String(value));
+    }
+  }
+
+  const config = {
+    pythonPath: 'D:\\conda\\envs\\yolov12-Seg\\python.exe',
+    scriptPath: 'E:\\Codes\\py\\yolov12-Seg\\lbws_train.py',
+    args: args,
+    workingDirectory: 'E:\\Codes\\py\\yolov12-Seg'
+  };
+
+  const result = await window.electronAPI.startTraining(config);
+
+  // ✅ 后续记录任务
+  if (result.success) {
+    alert('训练已启动');
+
+    const now = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    const timestamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+
+    const taskInfo = {
+      id: await window.electronAPI.generateTaskId(),
+      name: props.project.name,
+      status: '在训练',
+      createdAt: timestamp,
+      dir: selectedDataset.value.storagePath
+    };
+
+    const writeRes = await window.electronAPI.appendTask(taskInfo);
+    if (!writeRes.success) {
+      alert(`写入任务失败：${writeRes.error}`);
+    }
+  } else {
+    alert(`训练启动失败：${result.error}`);
+  }
+}
+
+
 
 // 加载 datasets.json
 async function loadDatasets() {
@@ -455,7 +510,7 @@ function validateTrainParams() {
   if (isNaN(trainParams.value.pose) || trainParams.value.pose < 0) errors.value.trainParams = 'Pose 不能为负数';
   if (isNaN(trainParams.value.kobj) || trainParams.value.kobj < 0) errors.value.trainParams = 'Kobj 不能为负数';
   if (isNaN(trainParams.value.label_smoothing) || trainParams.value.label_smoothing < 0) errors.value.trainParams = 'Label Smoothing 不能为负数';
-  if (isNaN(trainParams.value.nbs) || trainParams.value.nbs <= 0) errors.value.trainParams = 'NBS 必须为正数';
+  // if (isNaN(trainParams.value.nbs) || trainParams.value.nbs <= 0) errors.value.trainParams = 'NBS 必须为正数';
   if (isNaN(trainParams.value.hsv_h) || trainParams.value.hsv_h < 0) errors.value.trainParams = 'HSV H 不能为负数';
   if (isNaN(trainParams.value.hsv_s) || trainParams.value.hsv_s < 0 || trainParams.value.hsv_s > 1) errors.value.trainParams = 'HSV S 必须在 0 到 1 之间';
   if (isNaN(trainParams.value.hsv_v) || trainParams.value.hsv_v < 0 || trainParams.value.hsv_v > 1) errors.value.trainParams = 'HSV V 必须在 0 到 1 之间';
@@ -485,7 +540,7 @@ function nextStep() {
       //errors.value.dataset = '请选择一个数据集';
       return;
     }
-    if(props.project.type !== selectedDataset.value?.type){
+    if (props.project.type !== selectedDataset.value?.type) {
       alert('数据集类型于任务类型不匹配，请重新选择数据集!')
       return;
     }
@@ -502,18 +557,6 @@ function nextStep() {
   }
 }
 
-// 启动训练
-function confirmConfig() {
-  emit('config-success', {
-    ...props.project,
-    datasetId: selectedDatasetId.value,
-    model: selectedModel.value ?? '',
-    hyperParams: {...hyperParams.value},
-    trainParams: {...trainParams.value},
-  });
-  close();
-}
-
 function close() {
   currentStep.value = 1;
   selectedDatasetId.value = '';
@@ -522,15 +565,21 @@ function close() {
   selectedModel.value = '';
   hyperParams.value = {
     task: 'segment',
+    data: 'dataset.yaml',
     epochs: 1000,
     patience: 100,
-    batch: 48,
+    batch: 56,
     imgsz: 640,
-    save: true,
-    cache: false,
     device: 0,
     pretrained: true,
-    cos_lr: false,
+    workers: 4,
+    optimizer: 'SGD',
+    single_cls: false,
+    project: 'runs',
+    amp: true,
+    overlap_mask: true,
+    mask_ratio: 4,
+    dropout: 0.0
   };
   trainParams.value = {
     lr0: 0.01,
@@ -546,7 +595,7 @@ function close() {
     pose: 12.0,
     kobj: 1.0,
     label_smoothing: 0.0,
-    nbs: 64,
+    close_mosaic: 20,
     hsv_h: 0.015,
     hsv_s: 0.7,
     hsv_v: 0.4,
@@ -568,6 +617,18 @@ function close() {
   };
   errors.value = {dataset: '', model: '', hyperParams: '', trainParams: ''};
   emit('close');
+}
+
+// 启动训练
+function confirmConfig() {
+  emit('config-success', {
+    ...props.project,
+    datasetId: selectedDatasetId.value,
+    model: selectedModel.value ?? '',
+    hyperParams: {...hyperParams.value},
+    trainParams: {...trainParams.value},
+  });
+  close();
 }
 
 // 组件加载时初始化
@@ -852,5 +913,55 @@ onMounted(() => {
 .btn-cancel:hover {
   background: #f5f7fa;
 }
+
+.form-grid-4col {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px 20px;
+  margin-top: 10px;
+}
+
+.form-item {
+  display: flex;
+  align-items: center;
+}
+
+.form-item label {
+  white-space: nowrap;
+  margin-right: 10px;
+  font-weight: 500;
+  width: 120px;
+}
+
+.form-item input {
+  width: 120%;
+  padding: 6px 8px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.section-header {
+  display: flex;
+  //align-items: center;
+  margin-bottom: 8px;
+  gap: 8px;
+}
+
+.tooltip-icon {
+  display: inline-block;
+  background-color: #f0f0f0;
+  color: #333;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  font-size: 14px;
+  text-align: center;
+  line-height: 20px;
+  cursor: help;
+  font-weight: bold;
+  border: 1px solid #ccc;
+}
+
 </style>
 ```

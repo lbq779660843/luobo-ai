@@ -4,11 +4,10 @@
       <h2 class="logo">AI工具箱</h2>
       <ul class="nav">
         <li @click="go('/')">🏠 首页</li>
-        <li @click="go('/dataset')">📁 数据集管理</li>
-        <li @click="go('/train')">🧠 我的项目</li>
-
-        <li @click="go('/task')">📊 任务管理</li>
-        <li @click="go('/deploy')">🚀 模型管理</li>
+        <li @click="go('/dataset')">📁 1.数据集管理</li>
+        <li @click="go('/train')">🧠 2.项目列表</li>
+        <li @click="go('/task')">📊 3.任务管理</li>
+        <li @click="go('/deploy')">🚀 4.模型管理</li>
       </ul>
     </aside>
 

@@ -1,0 +1,33 @@
+{
+  "total": 4,
+  "items": [
+    {
+      "id": "T000001",
+      "name": "项目1",
+      "status": "在训练",
+      "createdAt": "2025-06-20 15:34:21",
+      "dir": "E:\\Codes\\py\\yolov12-Seg\\runs\\segment\\train-rjyl"
+    },
+    {
+      "id": "T000002",
+      "name": "华润demo",
+      "status": "在训练",
+      "createdAt": "2025-06-26 19:24:42",
+      "dir": "E:\\Datas\\4training\\datasets\\1_demo4js"
+    },
+    {
+      "id": "T000003",
+      "name": "华润demo",
+      "status": "在训练",
+      "createdAt": "2025-06-26 19:28:05",
+      "dir": "E:\\Datas\\4training\\datasets\\1_demo4js"
+    },
+    {
+      "id": null,
+      "name": "华润demo",
+      "status": "在训练",
+      "createdAt": "2025-07-03 17:16:20",
+      "dir": "E:\\Datas\\4training\\datasets\\1_demo4js"
+    }
+  ]
+}

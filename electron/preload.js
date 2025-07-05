@@ -256,5 +256,49 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
     writeTextFiles: (basePath, fileDataMap) => ipcRenderer.invoke('write-text-files', basePath, fileDataMap),
 
+    writeYamlFile: (dirPath, content) => ipcRenderer.invoke('writeYamlFile', dirPath, content),
 
+    startTraining: (config) => ipcRenderer.invoke('start-training', config),
+
+    // 生成 task id
+    generateTaskId: () => ipcRenderer.invoke('generate-task-id'),
+
+    // 添加 task
+    appendTask: (taskInfo) => ipcRenderer.invoke('append-task', taskInfo),
+
+    readTasks: () => {
+        const tasksPath = path.join(process.cwd(), 'tasks.json');
+        if (fs.existsSync(tasksPath)) {
+            const raw = fs.readFileSync(tasksPath, 'utf8');
+            return raw.trim() ? JSON.parse(raw) : { total: 0, items: [] };
+        }
+        return { total: 0, items: [] };
+    },
+
+    // 建议也暴露这两个，避免后续功能报错
+    writeTasks: (data) => {
+        const tasksPath = path.join(process.cwd(), 'tasks.json');
+        fs.writeFileSync(tasksPath, JSON.stringify(data, null, 2), 'utf8');
+    },
+
+    deleteTaskById: (id) => {
+        const tasksPath = path.join(process.cwd(), 'tasks.json');
+        if (fs.existsSync(tasksPath)) {
+            const raw = fs.readFileSync(tasksPath, 'utf8');
+            let data = raw.trim() ? JSON.parse(raw) : { total: 0, items: [] };
+            const newItems = data.items.filter(task => task.id !== id);
+            const updated = { total: newItems.length, items: newItems };
+            fs.writeFileSync(tasksPath, JSON.stringify(updated, null, 2), 'utf8');
+            return true;
+        }
+        return false;
+    },
+
+    openDir: (dirPath) => {
+        if (fs.existsSync(dirPath)) {
+            shell.openPath(dirPath); // 使用 shell 打开目录
+        } else {
+            console.warn('路径不存在:', dirPath);
+        }
+    }
 });
